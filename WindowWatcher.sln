@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherDaemon", "WindowWatcherDaemon\WindowWatcherDaemon.csproj", "{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherAnalyser", "WindowWatcherAnalyser\WindowWatcherAnalyser.csproj", "{B2322E2A-561B-4F43-9D53-F72074FF4775}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
