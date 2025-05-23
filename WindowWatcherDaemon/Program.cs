@@ -53,6 +53,7 @@ namespace WindowWatcherDaemon
             string lastAppTitle = "";
             DateTime lastAppActivated = DateTime.MinValue;
             _lastActivity = DateTime.UtcNow;
+            bool inactiveWritten = false;
 
             LogItem logItem;
 
@@ -62,47 +63,43 @@ namespace WindowWatcherDaemon
                 {
                     TimeSpan elapsed = DateTime.UtcNow.Subtract(_lastActivity);
                     int idleTimeout = AppSettings.Default.IdleTimeoutSeconds;
-                    if (elapsed.TotalSeconds < idleTimeout)
+                    if (elapsed.TotalSeconds > idleTimeout && !inactiveWritten)
                     {
-                        IntPtr hwnd = api.getforegroundWindow();
-                        Int32 pid = api.GetWindowProcessID(hwnd);
-                        string appTitle = api.ActiveApplTitle().Trim().Replace("\0", "");
-                        Process p = Process.GetProcessById(pid);
-                        string appName = p.ProcessName;
+                        logItem = new LogItem();
+                        logItem.Event = LogItem.EventTypes.Inactive;
+                        Log.Add(logItem);
 
-                        if ((lastAppPid != pid) || (lastAppTitle != appTitle))
-                        {
-                            DateTime now = DateTime.Now;
-                            if (lastAppActivated != DateTime.MinValue)
-                            {
-                                TimeSpan ts = now.Subtract(lastAppActivated);
-                            }
-
-                            lastAppActivated = now;
-                            lastAppPid = pid;
-                            lastAppName = appName;
-                            lastAppTitle = appTitle;
-
-                            logItem = new LogItem();
-                            logItem.Event = LogItem.EventTypes.WindowActivated;
-                            logItem.Process = lastAppName;
-                            logItem.Title = lastAppTitle;
-                            Log.Add(logItem);
-                        }
+                        inactiveWritten = true;
+                        _lastActivity = DateTime.UtcNow;
                     }
-                    else
-                    {
-                        if (lastAppPid != -1)
-                        {
-                            lastAppPid = -1;
-                            lastAppName = "";
-                            lastAppTitle = "";
-                            lastAppActivated = DateTime.MinValue;
 
-                            logItem = new LogItem();
-                            logItem.Event = LogItem.EventTypes.Inactive;
-                            Log.Add(logItem);
+                    IntPtr hwnd = api.getforegroundWindow();
+                    Int32 pid = api.GetWindowProcessID(hwnd);
+                    string appTitle = api.ActiveApplTitle().Trim().Replace("\0", "");
+                    Process p = Process.GetProcessById(pid);
+                    string appName = p.ProcessName;
+
+                    if ((lastAppPid != pid) || (lastAppTitle != appTitle))
+                    {
+                        DateTime now = DateTime.Now;
+                        if (lastAppActivated != DateTime.MinValue)
+                        {
+                            TimeSpan ts = now.Subtract(lastAppActivated);
                         }
+
+                        lastAppActivated = now;
+                        lastAppPid = pid;
+                        lastAppName = appName;
+                        lastAppTitle = appTitle;
+
+                        logItem = new LogItem();
+                        logItem.Event = LogItem.EventTypes.WindowActivated;
+                        logItem.Process = lastAppName;
+                        logItem.Title = lastAppTitle;
+                        Log.Add(logItem);
+
+                        inactiveWritten = false;
+                        _lastActivity = DateTime.UtcNow;
                     }
                 }
                 catch (Exception)

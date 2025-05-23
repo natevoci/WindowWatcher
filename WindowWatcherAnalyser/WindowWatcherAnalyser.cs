@@ -37,12 +37,12 @@ namespace WindowWatcherAnalyser
                         _processes.Add(ev.ProcessName);
                 }
             }
+            dateTimePickerCurrentDay.Value = DateTime.Today.AddHours(12.0);
+
             _processes.Sort();
             _processes.Insert(0, "Idle");
             _processes.Insert(0, "-- All Processes --");
             comboBoxProcess.DataSource = _processes;
-
-            dateTimePickerCurrentDay.Value = DateTime.Today.AddHours(12.0);
         }
 
         private void pictureBoxGraph_Paint(object sender, PaintEventArgs e)
@@ -112,8 +112,6 @@ namespace WindowWatcherAnalyser
         {
             DateTime startTime = dateTimePickerCurrentDay.Value.AddHours(_hoursVisible / -2);
             DateTime endTime = dateTimePickerCurrentDay.Value.AddHours(_hoursVisible / 2);
-            startTime = startTime.ToUniversalTime();
-            endTime = endTime.ToUniversalTime();
             TimeSpan windowTimeSpan = endTime.Subtract(startTime);
             float pixelsPerSecond = pictureBoxGraph.ClientRectangle.Width * 1.0f / (float)(windowTimeSpan.TotalHours * 60.0f * 60.0f);
 
@@ -187,8 +185,6 @@ namespace WindowWatcherAnalyser
 
             DateTime startTime = dateTimePickerCurrentDay.Value.AddHours(_hoursVisible / -2);
             DateTime endTime = dateTimePickerCurrentDay.Value.AddHours(_hoursVisible / 2);
-            startTime = startTime.ToUniversalTime();
-            endTime = endTime.ToUniversalTime();
             TimeSpan windowTimeSpan = endTime.Subtract(startTime);
             float pixelsPerSecond = windowRect.Width / (float)(windowTimeSpan.TotalSeconds);
 
@@ -207,7 +203,7 @@ namespace WindowWatcherAnalyser
 
                 g.DrawLine(dashedPen, x, 0, x, windowRect.Bottom);
 
-                g.DrawString(currHour.ToLocalTime().ToString("HH:mm"), font, Brushes.White, x, 0);
+                g.DrawString(currHour.ToString("HH:mm"), font, Brushes.White, x, 0);
 
                 currHour = currHour.AddHours(1.0);
             }

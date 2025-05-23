@@ -55,7 +55,7 @@ namespace WindowWatcherAnalyser
         {
             _events.Clear();
 
-            foreach (string filename in System.IO.Directory.GetFiles(folderPath, "*.log"))
+            foreach (string filename in System.IO.Directory.GetFiles(folderPath, "*.csv"))
             {
                 LoadFile(filename);
             }
@@ -79,6 +79,9 @@ namespace WindowWatcherAnalyser
                 string line = "";
                 while ((line = sr.ReadLine()) != null)
                 {
+                    if (line == "Date,Event,Process,WindowTitle")
+                        continue;
+
                     line = line.Trim().Trim('\0');
                     if (line.Length == 0)
                         continue;

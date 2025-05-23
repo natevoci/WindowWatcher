@@ -9,7 +9,7 @@ namespace WindowWatcherDaemon
 {
     class LogItem
     {
-        public DateTime Date = DateTime.UtcNow;
+        public DateTime Date = DateTime.Now;
         public EventTypes Event = EventTypes.None;
         public string Process = "";
         public string Title = "";
@@ -24,17 +24,17 @@ namespace WindowWatcherDaemon
 
         public override string ToString()
         {
-            string date = Date.ToString("yyyy/MM/dd HH:mm:ss.fff");
+            string date = Date.ToString("yyyy/MM/dd HH:mm:ss.fff zzz");
 
             StringBuilder result = new StringBuilder();
-            result.Append(date + ", " + Event.ToString());
+            result.Append(date + "," + Event.ToString());
 
             if (Process.Length > 0)
             {
-                result.Append(", \"").Append(Process.Replace("\"", "\\\"")).Append("\"");
+                result.Append(",\"").Append(Process.Replace("\"", "\\\"")).Append("\"");
 
                 if (Title.Length > 0)
-                    result.Append(", \"").Append(Title.Replace("\"", "\\\"")).Append("\"");
+                    result.Append(",\"").Append(Title.Replace("\"", "\\\"")).Append("\"");
             }
             return result.ToString();
         }
@@ -82,8 +82,9 @@ namespace WindowWatcherDaemon
         private static void WriteToFile(string text)
         {
             string filename;
-            FileInfo fi = new FileInfo("stats-" + DateTime.UtcNow.ToString("yyyy-MM-dd") + ".log");
+            FileInfo fi = new FileInfo("stats-" + DateTime.Now.ToString("yyyy-MM-dd") + ".csv");
             filename = fi.FullName;
+            var exists = fi.Exists;
 
             lock (fileLock)
             {
@@ -91,6 +92,10 @@ namespace WindowWatcherDaemon
                 try
                 {
                     sw = new StreamWriter(filename, true);
+                    if (!exists)
+                    {
+                        sw.WriteLine("Date,Event,Process,WindowTitle");
+                    }
                     sw.WriteLine(text);
                 }
                 finally
