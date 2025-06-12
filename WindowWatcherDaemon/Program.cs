@@ -11,6 +11,7 @@ namespace WindowWatcherDaemon
         private static UserActivityHook _activityHook;
         private static DateTime _lastActivity = DateTime.MinValue;
         private static System.Threading.ManualResetEvent _exitWindowWatchingThread = new System.Threading.ManualResetEvent(false);
+        private static Dictionary<int, string> _processNamesCache = new Dictionary<int, string>();
 
         /// <summary>
         /// The main entry point for the application.
@@ -73,11 +74,10 @@ namespace WindowWatcherDaemon
                         _lastActivity = DateTime.UtcNow;
                     }
 
-                    IntPtr hwnd = api.getforegroundWindow();
-                    Int32 pid = api.GetWindowProcessID(hwnd);
-                    string appTitle = api.ActiveApplTitle().Trim().Replace("\0", "");
-                    Process p = Process.GetProcessById(pid);
-                    string appName = p.ProcessName;
+                    IntPtr hwnd = GetHwnd();
+                    Int32 pid = GetPid(hwnd);
+                    string appTitle = GetAppTitle();
+                    string appName = GetProcessNameFromProcessId(pid);
 
                     if ((lastAppPid != pid) || (lastAppTitle != appTitle))
                     {
@@ -109,6 +109,40 @@ namespace WindowWatcherDaemon
             logItem = new LogItem();
             logItem.Event = LogItem.EventTypes.Exiting;
             Log.Add(logItem);
+        }
+
+        private static string GetProcessNameFromProcessId(int pid)
+        {
+            // Load from cache to reduce CPU usage
+            if (_processNamesCache.TryGetValue(pid, out string cachedName))
+            {
+                return cachedName;
+            }
+
+            Process p = GetProcessById(pid);
+            string appName = p.ProcessName;
+            _processNamesCache[pid] = appName;
+            return appName;
+        }
+
+        private static Process GetProcessById(int pid)
+        {
+            return Process.GetProcessById(pid);
+        }
+
+        private static string GetAppTitle()
+        {
+            return api.ActiveApplTitle().Trim().Replace("\0", "");
+        }
+
+        private static int GetPid(IntPtr hwnd)
+        {
+            return api.GetWindowProcessID(hwnd);
+        }
+
+        private static IntPtr GetHwnd()
+        {
+            return api.getforegroundWindow();
         }
     }
 }
