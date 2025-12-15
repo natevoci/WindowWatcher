@@ -1,0 +1,47 @@
+<Window x:Class="WindowWatcherDaemon.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
+        xmlns:local="clr-namespace:WindowWatcherDaemon"
+        mc:Ignorable="d"
+        Title="Window Watcher" Height="400" Width="650"
+        WindowState="{Binding WindowState, Mode=TwoWay}"
+        StateChanged="Window_StateChanged"
+        Closing="Window_Closing">
+    
+    <Window.Resources>
+        <ContextMenu x:Key="TrayContextMenu">
+            <MenuItem Header="Restore" FontWeight="Bold" Click="RestoreMenuItem_Click"/>
+            <MenuItem Header="View Analyser" Click="ViewAnalyserMenuItem_Click"/>
+            <MenuItem Header="View Screenshots" Click="ViewScreenshotsMenuItem_Click"/>
+            <Separator/>
+            <MenuItem Header="Exit" Click="ExitMenuItem_Click"/>
+        </ContextMenu>
+    </Window.Resources>
+    
+    <Grid>
+        <tb:TaskbarIcon x:Name="TrayIcon"
+                        IconSource="Icon1.ico"
+                        ToolTipText="Window Watcher"
+                        ContextMenu="{StaticResource TrayContextMenu}"
+                        TrayMouseDoubleClick="TrayIcon_TrayMouseDoubleClick"
+                        Visibility="Collapsed"/>
+        
+        <DataGrid x:Name="ActivityDataGrid"
+                  ItemsSource="{Binding RecentActivity}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="None"
+                  HeadersVisibility="Column"
+                  SelectionMode="Single"
+                  CanUserResizeRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Time" Binding="{Binding Date, StringFormat='hh:mm:ss tt'}" Width="160"/>
+                <DataGridTextColumn Header="Process" Binding="{Binding ProcessDisplay}" Width="120"/>
+                <DataGridTextColumn Header="Title" Binding="{Binding WindowTitleDisplay}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

@@ -1,5 +1,5 @@
 using System.Windows;
-using ScreenshotViewer.Services;
+using WindowWatcher.Common.Services;
 using ScreenshotViewer.ViewModels;
 
 namespace ScreenshotViewer;

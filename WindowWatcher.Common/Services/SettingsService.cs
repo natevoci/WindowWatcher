@@ -1,8 +1,7 @@
-using System.IO;
 using System.Text.Json;
-using ScreenshotViewer.Models;
+using WindowWatcher.Common.Models;
 
-namespace ScreenshotViewer.Services;
+namespace WindowWatcher.Common.Services;
 
 public class SettingsService
 {
