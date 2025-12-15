@@ -30,6 +30,13 @@
       "dependsOrder": "sequence"
     },
     {
+      "label": "install velopack",
+      "type": "shell",
+      "command": "dotnet tool install --global vpk",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
       "label": "build: installer",
       "type": "shell",
       "command": "vpk pack --packId WindowWatcher --packVersion 2.0.0 --packDir publish/WindowWatcher --mainExe WindowWatcher.Daemon.exe --yes --skip-updates",
