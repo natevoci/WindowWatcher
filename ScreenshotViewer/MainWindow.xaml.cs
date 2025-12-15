@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using ScreenshotViewer.ViewModels;
+using ScreenshotViewer.Services;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,7 @@ namespace ScreenshotViewer;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly SettingsService _settingsService;
     private bool _isDragging;
     private Point _lastMousePosition;
     private Point _mouseDownPosition;
@@ -20,7 +22,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        _viewModel = new MainViewModel();
+        _settingsService = new SettingsService();
+        _viewModel = new MainViewModel(_settingsService);
         DataContext = _viewModel;
 
         // Add keyboard bindings
@@ -28,6 +31,25 @@ public partial class MainWindow : Window
 
         // Subscribe to property changes to reset zoom when image changes
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+    }
+
+    private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var settingsWindow = new SettingsWindow(_settingsService)
+        {
+            Owner = this
+        };
+
+        if (settingsWindow.ShowDialog() == true)
+        {
+            // Settings were saved, refresh the data
+            _viewModel.RefreshData();
+        }
+    }
+
+    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

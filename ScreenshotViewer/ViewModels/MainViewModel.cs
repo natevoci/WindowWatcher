@@ -12,6 +12,7 @@ public class MainViewModel : INotifyPropertyChanged
 {
     private readonly SnapshotService _snapshotService;
     private readonly ImageCacheService _imageCache;
+    private readonly SettingsService _settingsService;
     
     private DateTime? _selectedDate;
     private List<SnapshotInfo> _snapshots = new();
@@ -20,9 +21,10 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _isZoomed;
     private int _loadRequestCounter = 0;
 
-    public MainViewModel()
+    public MainViewModel(SettingsService settingsService)
     {
-        _snapshotService = new SnapshotService();
+        _settingsService = settingsService;
+        _snapshotService = new SnapshotService(_settingsService);
         _imageCache = new ImageCacheService();
         
         // Initialize with the most recent date
@@ -30,6 +32,20 @@ public class MainViewModel : INotifyPropertyChanged
         if (availableDates.Count > 0)
         {
             SelectedDate = availableDates[0];
+        }
+    }
+
+    public void RefreshData()
+    {
+        // Reload available dates and reset the view
+        var availableDates = _snapshotService.GetAvailableDates();
+        if (availableDates.Count > 0)
+        {
+            SelectedDate = availableDates[0];
+        }
+        else
+        {
+            SelectedDate = null;
         }
     }
 
