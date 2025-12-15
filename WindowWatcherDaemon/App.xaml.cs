@@ -33,7 +33,21 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error during CSV file migration: {ex.Message}", "Migration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            // Show error with TopMost message box
+            var tempWindow = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ShowInTaskbar = false,
+                Width = 0,
+                Height = 0,
+                Left = -10000,
+                Top = -10000,
+                AllowsTransparency = true,
+                Background = System.Windows.Media.Brushes.Transparent
+            };
+            tempWindow.Show();
+            MessageBox.Show(tempWindow, $"Error during CSV file migration: {ex.Message}", "Migration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            tempWindow.Close();
         }
 
         // Setup activity hook
@@ -101,7 +115,7 @@ public partial class App : Application
                         EventType = WindowActivityEventType.Inactive
                     };
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
-                    _mainWindow?.ViewModel.AddActivity(evt);
+                    _mainWindow?.ViewEventsViewModel.AddActivity(evt);
 
                     inactiveWritten = true;
                     _lastActivity = DateTime.UtcNow;
@@ -127,7 +141,7 @@ public partial class App : Application
                         WindowTitle = lastAppTitle
                     };
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
-                    _mainWindow?.ViewModel.AddActivity(evt);
+                    _mainWindow?.ViewEventsViewModel.AddActivity(evt);
 
                     inactiveWritten = false;
                     _lastActivity = DateTime.UtcNow;
