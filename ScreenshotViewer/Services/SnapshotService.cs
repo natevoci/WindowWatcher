@@ -6,16 +6,24 @@ namespace ScreenshotViewer.Services;
 
 public class SnapshotService
 {
-    private const string SnapshotsRootPath = @"C:\Screenshots";
+    private readonly SettingsService _settingsService;
+    
+    public SnapshotService(SettingsService settingsService)
+    {
+        _settingsService = settingsService;
+    }
+
+    private string GetSnapshotsPath() => _settingsService.LoadSettings().SnapshotsPath;
 
     public List<DateTime> GetAvailableDates()
     {
-        if (!Directory.Exists(SnapshotsRootPath))
+        var snapshotsPath = GetSnapshotsPath();
+        if (!Directory.Exists(snapshotsPath))
             return new List<DateTime>();
 
         var dates = new List<DateTime>();
         
-        foreach (var directory in Directory.GetDirectories(SnapshotsRootPath))
+        foreach (var directory in Directory.GetDirectories(snapshotsPath))
         {
             var dirName = Path.GetFileName(directory);
             if (DateTime.TryParseExact(dirName, "yyyy-MM-dd", 
@@ -27,10 +35,10 @@ public class SnapshotService
         
         return dates.OrderByDescending(d => d).ToList();
     }
-
     public List<SnapshotInfo> GetSnapshotsForDate(DateTime date)
     {
-        var dateFolder = Path.Combine(SnapshotsRootPath, date.ToString("yyyy-MM-dd"));
+        var snapshotsPath = GetSnapshotsPath();
+        var dateFolder = Path.Combine(snapshotsPath, date.ToString("yyyy-MM-dd"));
         
         if (!Directory.Exists(dateFolder))
             return new List<SnapshotInfo>();
