@@ -1,0 +1,75 @@
+<Window x:Class="ScreenshotViewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScreenshotViewer"
+        xmlns:controls="clr-namespace:ScreenshotViewer.Controls"
+        mc:Ignorable="d"
+        Title="Screenshot Viewer" Height="800" Width="1200"
+        WindowState="Maximized">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Time Display and Date Picker -->
+        <Grid Grid.Row="0" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <!-- Left-aligned time display -->
+            <TextBlock Grid.Column="0"
+                       Text="{Binding CurrentTimeDisplay}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Margin="0,0,15,0"
+                       Foreground="#333"/>
+            <!-- Right-aligned date controls -->
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button x:Name="PlayTestCacheButton" Content="Cache Test" Width="60" Height="24" Margin="0,0,10,0" Click="PlayTestCacheButton_Click"/>
+                <Button x:Name="PlayTestRenderButton" Content="Play Test" Width="60" Height="24" Margin="0,0,10,0" Click="PlayTestRenderButton_Click"/>
+                <Button x:Name="PrevDayButton" Content="&lt;&lt;" Width="32" Height="24" Margin="0,0,5,0" Click="PrevDayButton_Click"/>
+                <DatePicker x:Name="DateSelector"
+                            VerticalAlignment="Center"
+                            SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
+                <Button x:Name="NextDayButton" Content="&gt;&gt;" Width="32" Height="24" Margin="5,0,0,0" Click="NextDayButton_Click"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Timeline Slider with Heat Map -->
+        <controls:TimelineSlider x:Name="TimelineSlider"
+                                 Grid.Row="1"
+                                 Margin="10,0,10,10"
+                                 Height="80"
+                                 Value="{Binding CurrentTimeValue, Mode=TwoWay}"
+                                 Snapshots="{Binding Snapshots}"/>
+        
+        <!-- Image Display -->
+        <Grid Grid.Row="2" x:Name="ImageContainer" Background="Black" ClipToBounds="True">
+            <ScrollViewer x:Name="MainImageScrollViewer"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Disabled"
+                          Background="Transparent"
+                          PanningMode="Both"
+                          CanContentScroll="False">
+                <Image x:Name="MainImage"
+                       Source="{Binding CurrentImageSource}"
+                       Stretch="{Binding ImageStretch}"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       MouseLeftButtonDown="MainImage_MouseLeftButtonDown"
+                       MouseMove="MainImage_MouseMove"
+                       MouseLeftButtonUp="MainImage_MouseLeftButtonUp"
+                       Cursor="{Binding ImageCursor}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
