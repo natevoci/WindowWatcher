@@ -1,0 +1,72 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    env:
+      Solution_Name: WindowWatcher.sln
+
+    steps:
+    - name: Extract Version
+      id: extract_version
+      shell: bash
+      run: |
+        VERSION=$(echo "${GITHUB_REF_NAME}" | cut -c2-)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - uses: actions/checkout@v3  
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET    
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies    
+      run: dotnet restore ${{ env.Solution_Name }}
+
+    - name: Build  
+      run: dotnet build ${{ env.Solution_Name }} --configuration Release --no-restore
+
+    - name: Publish WindowWatcherDaemon
+      run: dotnet publish WindowWatcherDaemon/WindowWatcherDaemon.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+
+    - name: Publish WindowWatcherAnalyser
+      run: dotnet publish WindowWatcherAnalyser/WindowWatcherAnalyser.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+
+    - name: Publish ScreenshotViewer
+      run: dotnet publish ScreenshotViewer/ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+
+    - name: Install Velopack CLI  
+      run: dotnet tool install --global vpk
+  
+    - name: Create Velopack Release for WindowWatcher
+      run: |
+        vpk pack --packId "WindowWatcher" --packVersion "${{ steps.extract_version.outputs.version }}" --packDir "publish/WindowWatcher" --mainExe "WindowWatcherDaemon.exe"
+
+    - name: Log Releases Directory Listing
+      run: |
+        echo "Contents of Releases:"
+        Get-ChildItem -Recurse Releases
+
+    - name: Create Release and Upload Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref }}
+        name: Release ${{ steps.extract_version.outputs.version }}
+        draft: false
+        prerelease: false
+        files: |
+          Releases/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

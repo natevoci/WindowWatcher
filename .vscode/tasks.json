@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build: publish daemon",
+      "type": "shell",
+      "command": "dotnet publish WindowWatcherDaemon/WindowWatcherDaemon.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
+      "group": "build"
+    },
+    {
+      "label": "build: publish analyser",
+      "type": "shell",
+      "command": "dotnet publish WindowWatcherAnalyser/WindowWatcherAnalyser.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
+      "group": "build"
+    },
+    {
+      "label": "build: publish viewer",
+      "type": "shell",
+      "command": "dotnet publish ScreenshotViewer/ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
+      "group": "build"
+    },
+    {
+      "label": "build: publish all",
+      "group": "build",
+      "dependsOn": [
+        "build: publish daemon",
+        "build: publish analyser",
+        "build: publish viewer"
+      ],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "build: installer",
+      "type": "shell",
+      "command": "vpk pack --packId WindowWatcher --packVersion 2.0.0 --packDir publish/WindowWatcher --mainExe WindowWatcherDaemon.exe --yes --skip-updates",
+      "group": "build",
+      "dependsOn": ["build: publish all"]
+    }
+  ]
+}
