@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace ScreenshotViewer;
+namespace WindowWatcher.ScreenshotViewer;
 
 public partial class App : Application
 {

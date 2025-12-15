@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace ScreenshotViewer.Models;
+namespace WindowWatcher.ScreenshotViewer.Models;
 
 public record SnapshotInfo
 {

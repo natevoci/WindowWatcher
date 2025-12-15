@@ -73,7 +73,7 @@ public partial class MainWindow : Window
         try
         {
             string currPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty) ?? string.Empty;
-            string screenshotViewerPath = Path.Combine(currPath, "ScreenshotViewer.exe");
+            string screenshotViewerPath = Path.Combine(currPath, "WindowWatcher.ScreenshotViewer.exe");
 
             if (File.Exists(screenshotViewerPath))
             {
@@ -85,13 +85,13 @@ public partial class MainWindow : Window
             }
             else
             {
-                ShowMessageBox($"ScreenshotViewer.exe not found at:\n{screenshotViewerPath}",
+                ShowMessageBox($"WindowWatcher.ScreenshotViewer.exe not found at:\n{screenshotViewerPath}",
                     "Application Not Found", MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
-            ShowMessageBox($"Failed to launch ScreenshotViewer:\n{ex.Message}",
+            ShowMessageBox($"Failed to launch WindowWatcher.ScreenshotViewer:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
     }

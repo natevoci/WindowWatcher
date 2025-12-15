@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.Daemon", "Win
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.Analyser", "WindowWatcher.Analyser\WindowWatcher.Analyser.csproj", "{B2322E2A-561B-4F43-9D53-F72074FF4775}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenshotViewer", "ScreenshotViewer\ScreenshotViewer.csproj", "{F96B7A28-27FD-898A-396E-7991072FA5C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.ScreenshotViewer", "WindowWatcher.ScreenshotViewer\WindowWatcher.ScreenshotViewer.csproj", "{F96B7A28-27FD-898A-396E-7991072FA5C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

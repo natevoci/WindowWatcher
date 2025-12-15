@@ -5,10 +5,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
-using ScreenshotViewer.Models;
-using ScreenshotViewer.Services;
+using WindowWatcher.ScreenshotViewer.Models;
+using WindowWatcher.ScreenshotViewer.Services;
 
-namespace ScreenshotViewer.ViewModels;
+namespace WindowWatcher.ScreenshotViewer.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {

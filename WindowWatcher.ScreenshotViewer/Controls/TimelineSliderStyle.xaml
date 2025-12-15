@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:ScreenshotViewer.Controls">
+                    xmlns:controls="clr-namespace:WindowWatcher.ScreenshotViewer.Controls">
 
     <!-- Slider Repeat Button Style (Transparent) - Must be defined before use -->
     <Style x:Key="SliderRepeatButtonStyle" TargetType="RepeatButton">

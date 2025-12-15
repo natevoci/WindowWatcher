@@ -1,12 +1,12 @@
 using System.Windows;
 using System.Windows.Input;
-using ScreenshotViewer.ViewModels;
+using WindowWatcher.ScreenshotViewer.ViewModels;
 using WindowWatcher.Common.Services;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ScreenshotViewer;
+namespace WindowWatcher.ScreenshotViewer;
 
 public partial class MainWindow : Window
 {
@@ -188,7 +188,7 @@ public partial class MainWindow : Window
         var availableDates = _viewModel
             .GetType()
             .GetField("_snapshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(_viewModel) as ScreenshotViewer.Services.SnapshotService;
+            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.SnapshotService;
         if (availableDates == null)
             return;
         var dates = availableDates.GetAvailableDates().OrderBy(d => d).ToList();
@@ -206,7 +206,7 @@ public partial class MainWindow : Window
         var availableDates = _viewModel
             .GetType()
             .GetField("_snapshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(_viewModel) as ScreenshotViewer.Services.SnapshotService;
+            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.SnapshotService;
         if (availableDates == null)
             return;
         var dates = availableDates.GetAvailableDates().OrderBy(d => d).ToList();

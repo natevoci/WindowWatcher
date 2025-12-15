@@ -1,8 +1,8 @@
 using System.Windows;
 using WindowWatcher.Common.Services;
-using ScreenshotViewer.ViewModels;
+using WindowWatcher.ScreenshotViewer.ViewModels;
 
-namespace ScreenshotViewer;
+namespace WindowWatcher.ScreenshotViewer;
 
 public partial class SettingsWindow : Window
 {

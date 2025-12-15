@@ -2,9 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using ScreenshotViewer.Models;
+using WindowWatcher.ScreenshotViewer.Models;
 
-namespace ScreenshotViewer.Controls;
+namespace WindowWatcher.ScreenshotViewer.Controls;
 
 public class TimelineSlider : Slider
 {
