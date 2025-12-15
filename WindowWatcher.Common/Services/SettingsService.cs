@@ -10,6 +10,8 @@ public class SettingsService
         "WindowWatcher",
         "settings.json");
 
+    private static readonly string SettingsDirectory = Path.GetDirectoryName(SettingsFilePath) ?? string.Empty;
+
     private AppSettings? _cachedSettings;
 
     public AppSettings LoadSettings()
@@ -22,19 +24,37 @@ public class SettingsService
             if (File.Exists(SettingsFilePath))
             {
                 var json = File.ReadAllText(SettingsFilePath);
-                _cachedSettings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                ResolveRelativePaths(settings);
+                _cachedSettings = settings;
             }
             else
             {
-                _cachedSettings = new AppSettings();
+                var settings = new AppSettings();
+                ResolveRelativePaths(settings);
+                _cachedSettings = settings;
             }
         }
         catch
         {
-            _cachedSettings = new AppSettings();
+            var settings = new AppSettings();
+            ResolveRelativePaths(settings);
+            _cachedSettings = settings;
         }
 
         return _cachedSettings;
+    }
+
+    private void ResolveRelativePaths(AppSettings settings)
+    {
+        if (!Path.IsPathRooted(settings.SnapshotsPath))
+        {
+            settings.SnapshotsPath = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.SnapshotsPath));
+        }
+        if (!Path.IsPathRooted(settings.DataDirectory))
+        {
+            settings.DataDirectory = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.DataDirectory));
+        }
     }
 
     public void SaveSettings(AppSettings settings)
