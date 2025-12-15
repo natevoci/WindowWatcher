@@ -38,11 +38,11 @@ jobs:
     - name: Build  
       run: dotnet build ${{ env.Solution_Name }} --configuration Release --no-restore
 
-    - name: Publish WindowWatcherDaemon
-      run: dotnet publish WindowWatcherDaemon/WindowWatcherDaemon.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+    - name: Publish WindowWatcher.Daemon
+      run: dotnet publish WindowWatcher.Daemon/WindowWatcher.Daemon.csproj --self-contained -r win-x64 -o publish/WindowWatcher
 
-    - name: Publish WindowWatcherAnalyser
-      run: dotnet publish WindowWatcherAnalyser/WindowWatcherAnalyser.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+    - name: Publish WindowWatcher.Analyser
+      run: dotnet publish WindowWatcher.Analyser/WindowWatcher.Analyser.csproj --self-contained -r win-x64 -o publish/WindowWatcher
 
     - name: Publish ScreenshotViewer
       run: dotnet publish ScreenshotViewer/ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher
@@ -52,7 +52,7 @@ jobs:
   
     - name: Create Velopack Release for WindowWatcher
       run: |
-        vpk pack --packId "WindowWatcher" --packVersion "${{ steps.extract_version.outputs.version }}" --packDir "publish/WindowWatcher" --mainExe "WindowWatcherDaemon.exe"
+        vpk pack --packId "WindowWatcher" --packVersion "${{ steps.extract_version.outputs.version }}" --packDir "publish/WindowWatcher" --mainExe "WindowWatcher.Daemon.exe"
 
     - name: Log Releases Directory Listing
       run: |

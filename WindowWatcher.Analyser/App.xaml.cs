@@ -1,7 +1,7 @@
 using System.Windows;
 using WindowWatcher.Common.Services;
 
-namespace WindowWatcherAnalyser;
+namespace WindowWatcher.Analyser;
 
 public partial class App : Application
 {

@@ -3,7 +3,7 @@ using System.Windows;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
-namespace WindowWatcherDaemon;
+namespace WindowWatcher.Daemon;
 
 public partial class App : Application
 {

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace WindowWatcherAnalyser;
+namespace WindowWatcher.Analyser;
 
 public partial class MainWindow : Window
 {
