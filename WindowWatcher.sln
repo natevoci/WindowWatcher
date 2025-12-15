@@ -5,9 +5,9 @@ VisualStudioVersion = 17.14.36221.1 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.Common", "WindowWatcher.Common\WindowWatcher.Common.csproj", "{C5E12345-1234-5678-9012-345678901234}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherDaemon", "WindowWatcherDaemon\WindowWatcherDaemon.csproj", "{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.Daemon", "WindowWatcher.Daemon\WindowWatcher.Daemon.csproj", "{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherAnalyser", "WindowWatcherAnalyser\WindowWatcherAnalyser.csproj", "{B2322E2A-561B-4F43-9D53-F72074FF4775}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcher.Analyser", "WindowWatcher.Analyser\WindowWatcher.Analyser.csproj", "{B2322E2A-561B-4F43-9D53-F72074FF4775}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenshotViewer", "ScreenshotViewer\ScreenshotViewer.csproj", "{F96B7A28-27FD-898A-396E-7991072FA5C3}"
 EndProject

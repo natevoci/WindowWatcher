@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using WindowWatcher.Common.Models;
 
-namespace WindowWatcherDaemon;
+namespace WindowWatcher.Daemon;
 
 public class ViewEventsViewModel : INotifyPropertyChanged
 {

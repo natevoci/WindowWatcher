@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using WindowWatcher.Common.Models;
 
-namespace WindowWatcherAnalyser.Controls;
+namespace WindowWatcher.Analyser.Controls;
 
 public class TimelineCanvas : FrameworkElement
 {

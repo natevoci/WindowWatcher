@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
-namespace WindowWatcherDaemon;
+namespace WindowWatcher.Daemon;
 
 public partial class MainWindow : Window
 {
@@ -45,7 +45,7 @@ public partial class MainWindow : Window
         try
         {
             string currPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty) ?? string.Empty;
-            string analyserPath = Path.Combine(currPath, "WindowWatcherAnalyser.exe");
+            string analyserPath = Path.Combine(currPath, "WindowWatcher.Analyser.exe");
 
             if (File.Exists(analyserPath))
             {
@@ -57,13 +57,13 @@ public partial class MainWindow : Window
             }
             else
             {
-                ShowMessageBox($"WindowWatcherAnalyser.exe not found at:\n{analyserPath}",
+                ShowMessageBox($"WindowWatcher.Analyser.exe not found at:\n{analyserPath}",
                     "Application Not Found", MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
-            ShowMessageBox($"Failed to launch WindowWatcherAnalyser:\n{ex.Message}",
+            ShowMessageBox($"Failed to launch WindowWatcher.Analyser:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
     }

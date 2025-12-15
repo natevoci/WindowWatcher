@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace WindowWatcherDaemon;
+namespace WindowWatcher.Daemon;
 
 public partial class ViewEventsWindow : Window
 {

@@ -5,7 +5,7 @@ using System.Windows.Input;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
-namespace WindowWatcherAnalyser.ViewModels;
+namespace WindowWatcher.Analyser.ViewModels;
 
 public class AnalyserViewModel : INotifyPropertyChanged
 {
