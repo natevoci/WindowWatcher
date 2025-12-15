@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using ScreenshotViewer.ViewModels;
-using ScreenshotViewer.Services;
+using WindowWatcher.Common.Services;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;

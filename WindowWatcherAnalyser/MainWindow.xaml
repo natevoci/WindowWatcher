@@ -1,0 +1,69 @@
+<Window x:Class="WindowWatcherAnalyser.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WindowWatcherAnalyser"
+        xmlns:controls="clr-namespace:WindowWatcherAnalyser.Controls"
+        mc:Ignorable="d"
+        Title="Window Watcher Analyser" Height="550" Width="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Margin="10,10,10,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="&lt;&lt;" Width="40" Margin="0,0,5,0"
+                    Command="{Binding PreviousDayCommand}" ToolTip="Previous Day"/>
+            <Button Grid.Column="1" Content="&lt;" Width="40" Margin="0,0,5,0"
+                    Command="{Binding ScrollLeftCommand}" ToolTip="Scroll Left"/>
+            
+            <DatePicker Grid.Column="2" SelectedDate="{Binding SelectedDate, Mode=TwoWay}"
+                        Margin="0,0,5,0" VerticalAlignment="Center"/>
+            
+            <Button Grid.Column="3" Content="&gt;" Width="40" Margin="0,0,5,0"
+                    Command="{Binding ScrollRightCommand}" ToolTip="Scroll Right"/>
+            <Button Grid.Column="4" Content="&gt;&gt;" Width="40" Margin="0,0,10,0"
+                    Command="{Binding NextDayCommand}" ToolTip="Next Day"/>
+            
+            <Button Grid.Column="5" Content="Full Day" Width="70" Margin="0,0,5,0"
+                    Command="{Binding FullDayCommand}" ToolTip="Show Full 24 Hours"/>
+            <Button Grid.Column="6" Content="Zoom In" Width="70" Margin="0,0,5,0"
+                    Command="{Binding ZoomInCommand}" ToolTip="Zoom In"/>
+            <Button Grid.Column="7" Content="Zoom Out" Width="70" Margin="0,0,5,0"
+                    Command="{Binding ZoomOutCommand}" ToolTip="Zoom Out"/>
+            
+            <ComboBox Grid.Column="8" Width="200" 
+                      ItemsSource="{Binding ProcessList}"
+                      SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
+                      ToolTip="Filter by Process"/>
+        </Grid>
+
+        <!-- Timeline Canvas with ScrollViewer -->
+        <Grid Grid.Row="1" Margin="10,0,10,10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <controls:TimelineCanvas x:Name="TimelineCanvas"
+                                        Events="{Binding FilteredEvents}"
+                                        StartTime="{Binding StartTime}"
+                                        EndTime="{Binding EndTime}"
+                                        Rows="{Binding Rows}"
+                                        ScrollOffset="{Binding ScrollOffset}"
+                                        MinHeight="500"/>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

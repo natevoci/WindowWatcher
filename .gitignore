@@ -1,3 +1,4 @@
-/bin
-/*.suo
-/.vs
+bin
+obj
+*.suo
+.vs

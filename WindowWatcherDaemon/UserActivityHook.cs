@@ -47,7 +47,7 @@ namespace WindowWatcherDaemon
             /// <summary>
             /// Specifies a POINT structure that contains the x- and y-coordinates of the cursor, in screen coordinates. 
             /// </summary>
-            public POINT pt;
+            public required POINT pt;
             /// <summary>
             /// Handle to the window that will receive the mouse message corresponding to the mouse event. 
             /// </summary>
@@ -71,7 +71,7 @@ namespace WindowWatcherDaemon
             /// <summary>
             /// Specifies a POINT structure that contains the x- and y-coordinates of the cursor, in screen coordinates. 
             /// </summary>
-            public POINT pt;
+            public required POINT pt;
             /// <summary>
             /// If the message is WM_MOUSEWHEEL, the high-order word of this member is the wheel delta. 
             /// The low-order word is reserved. A positive value indicates that the wheel was rotated forward, 
@@ -463,20 +463,19 @@ namespace WindowWatcherDaemon
         /// <summary>
         /// Occurs when the user moves the mouse, presses any mouse button or scrolls the wheel
         /// </summary>
-        public event MouseEventHandler OnMouseActivity;
+        public event MouseEventHandler? OnMouseActivity;
         /// <summary>
         /// Occurs when the user presses a key
         /// </summary>
-        public event KeyEventHandler KeyDown;
+        public event KeyEventHandler? KeyDown;
         /// <summary>
         /// Occurs when the user presses and releases 
         /// </summary>
-        public event KeyPressEventHandler KeyPress;
+        public event KeyPressEventHandler? KeyPress;
         /// <summary>
         /// Occurs when the user releases a key
         /// </summary>
-        public event KeyEventHandler KeyUp;
-
+        public event KeyEventHandler? KeyUp;
 
         /// <summary>
         /// Stores the handle to the mouse hook procedure.
@@ -491,11 +490,11 @@ namespace WindowWatcherDaemon
         /// <summary>
         /// Declare MouseHookProcedure as HookProc type.
         /// </summary>
-        private static HookProc MouseHookProcedure;
+        private static HookProc? MouseHookProcedure;
         /// <summary>
         /// Declare KeyboardHookProcedure as HookProc type.
         /// </summary>
-        private static HookProc KeyboardHookProcedure;
+        private static HookProc? KeyboardHookProcedure;
 
 
         /// <summary>
@@ -648,7 +647,7 @@ namespace WindowWatcherDaemon
             if ((nCode >= 0) && (OnMouseActivity != null))
             {
                 //Marshall the data from callback.
-                MouseLLHookStruct mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct));
+                MouseLLHookStruct mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct))!;
 
                 //detect button clicked
                 MouseButtons button = MouseButtons.None;
@@ -730,7 +729,7 @@ namespace WindowWatcherDaemon
             if ((nCode >= 0) && (KeyDown != null || KeyUp != null || KeyPress != null))
             {
                 //read structure KeyboardHookStruct at lParam
-                KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
+                KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct))!;
                 //raise KeyDown
                 if (KeyDown != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN))
                 {

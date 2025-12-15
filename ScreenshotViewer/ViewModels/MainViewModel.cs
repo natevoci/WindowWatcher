@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using WindowWatcher.Common.Models;
+using WindowWatcher.Common.Services;
 using ScreenshotViewer.Models;
 using ScreenshotViewer.Services;
 

@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using ScreenshotViewer.Models;
-using ScreenshotViewer.Services;
+using WindowWatcher.Common.Models;
+using WindowWatcher.Common.Services;
 
 namespace ScreenshotViewer.ViewModels;
 
