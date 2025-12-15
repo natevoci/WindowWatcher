@@ -1,9 +1,9 @@
 using System.IO;
 using System.Globalization;
 using WindowWatcher.Common.Services;
-using ScreenshotViewer.Models;
+using WindowWatcher.ScreenshotViewer.Models;
 
-namespace ScreenshotViewer.Services;
+namespace WindowWatcher.ScreenshotViewer.Services;
 
 public class SnapshotService
 {

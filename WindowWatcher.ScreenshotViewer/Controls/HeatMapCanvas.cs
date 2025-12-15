@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 
-namespace ScreenshotViewer.Controls;
+namespace WindowWatcher.ScreenshotViewer.Controls;
 
 // Separate top-level class for the heat map canvas
 public class HeatMapCanvas : FrameworkElement

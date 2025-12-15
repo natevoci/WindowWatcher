@@ -4,7 +4,7 @@ using System.Windows.Input;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
-namespace ScreenshotViewer.ViewModels;
+namespace WindowWatcher.ScreenshotViewer.ViewModels;
 
 public class SettingsViewModel : INotifyPropertyChanged
 {

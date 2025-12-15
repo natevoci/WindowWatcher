@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Windows.Media.Imaging;
 
-namespace ScreenshotViewer.Services;
+namespace WindowWatcher.ScreenshotViewer.Services;
 
 public class ImageCacheService
 {

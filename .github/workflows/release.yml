@@ -44,8 +44,8 @@ jobs:
     - name: Publish WindowWatcher.Analyser
       run: dotnet publish WindowWatcher.Analyser/WindowWatcher.Analyser.csproj --self-contained -r win-x64 -o publish/WindowWatcher
 
-    - name: Publish ScreenshotViewer
-      run: dotnet publish ScreenshotViewer/ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher
+    - name: Publish WindowWatcher.ScreenshotViewer
+      run: dotnet publish WindowWatcher.ScreenshotViewer/WindowWatcher.ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher
 
     - name: Install Velopack CLI  
       run: dotnet tool install --global vpk

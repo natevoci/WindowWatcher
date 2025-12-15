@@ -16,7 +16,7 @@
     {
       "label": "build: publish viewer",
       "type": "shell",
-      "command": "dotnet publish ScreenshotViewer/ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
+      "command": "dotnet publish WindowWatcher.ScreenshotViewer/WindowWatcher.ScreenshotViewer.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
       "group": "build"
     },
     {
