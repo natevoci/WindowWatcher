@@ -1,9 +1,13 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36221.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherDaemon", "WindowWatcherDaemon\WindowWatcherDaemon.csproj", "{AE5DAB55-ACC4-4669-9396-0F2CC65E847B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowWatcherAnalyser", "WindowWatcherAnalyser\WindowWatcherAnalyser.csproj", "{B2322E2A-561B-4F43-9D53-F72074FF4775}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenshotViewer", "ScreenshotViewer\ScreenshotViewer.csproj", "{F96B7A28-27FD-898A-396E-7991072FA5C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +23,10 @@ Global
 		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2322E2A-561B-4F43-9D53-F72074FF4775}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F96B7A28-27FD-898A-396E-7991072FA5C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F96B7A28-27FD-898A-396E-7991072FA5C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F96B7A28-27FD-898A-396E-7991072FA5C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F96B7A28-27FD-898A-396E-7991072FA5C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
