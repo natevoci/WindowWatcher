@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using Velopack;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
@@ -7,6 +8,9 @@ namespace WindowWatcher.Daemon;
 
 public partial class App : Application
 {
+    private const string GithubOwner = "natevoci";
+    private const string GithubRepo = "WindowWatcher";
+
     private SettingsService? _settingsService;
     private CsvMigrationUtility? _migrationUtility;
     private UserActivityHook? _activityHook;
@@ -19,7 +23,13 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Initialize Velopack
+        VelopackApp.Build().Run();
+
         base.OnStartup(e);
+
+        // Check for updates
+        CheckForUpdates();
 
         // Initialize services
         _settingsService = new SettingsService();
@@ -184,6 +194,51 @@ public partial class App : Application
     private static string GetAppTitle()
     {
         return WindowsApiService.GetActiveWindowTitle().Trim().Replace("\0", string.Empty);
+    }
+
+    private async void CheckForUpdates()
+    {
+        try
+        {
+            var updateSource = new Velopack.Sources.GithubSource($"https://github.com/{GithubOwner}/{GithubRepo}", null, false);
+            var updateManager = new UpdateManager(updateSource);
+
+            var updateInfo = await updateManager.CheckForUpdatesAsync();
+            if (updateInfo == null)
+                return;
+
+            // Create a temporary window to make MessageBox topmost
+            var tempWindow = new Window
+            {
+                Width = 0,
+                Height = 0,
+                WindowStyle = WindowStyle.None,
+                ShowInTaskbar = false,
+                Topmost = true,
+                AllowsTransparency = true,
+                Background = System.Windows.Media.Brushes.Transparent
+            };
+            tempWindow.Show();
+
+            var result = MessageBox.Show(
+                tempWindow,
+                $"A new version {updateInfo.TargetFullRelease.Version} is available. Would you like to update now?",
+                "Update Available",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            tempWindow.Close();
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await updateManager.DownloadUpdatesAsync(updateInfo);
+                updateManager.ApplyUpdatesAndRestart(updateInfo);
+            }
+        }
+        catch
+        {
+            // Silently ignore update failures
+        }
     }
 
     private static int GetPid(IntPtr hwnd)
