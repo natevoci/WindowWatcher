@@ -1,71 +1,43 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using WindowWatcher.Common.Services;
 
 namespace WindowWatcherDaemon;
 
 public partial class MainWindow : Window
 {
-    private readonly MainViewModel _viewModel;
-    private readonly SettingsService _settingsService;
-    private WindowState _previousWindowState = WindowState.Normal;
+    private readonly ViewEventsViewModel _viewEventsViewModel;
+    private ViewEventsWindow? _viewEventsWindow;
 
     public MainWindow()
     {
         InitializeComponent();
 
-        _viewModel = new MainViewModel();
-        DataContext = _viewModel;
-
-        _settingsService = new SettingsService();
-        var settings = _settingsService.LoadSettings();
-
-        // Start minimized if configured
-        if (settings.MinimizeOnStartup)
-        {
-            WindowState = WindowState.Minimized;
-            ShowInTaskbar = false;
-            TrayIcon.Visibility = Visibility.Visible;
-        }
+        _viewEventsViewModel = new ViewEventsViewModel();
     }
 
-    private void Window_StateChanged(object sender, EventArgs e)
+    private void ShowViewEventsWindow()
     {
-        if (WindowState == WindowState.Minimized)
+        if (_viewEventsWindow == null || !_viewEventsWindow.IsLoaded)
         {
-            SendToTray();
+            _viewEventsWindow = new ViewEventsWindow(_viewEventsViewModel);
+            _viewEventsWindow.Closed += (s, e) => _viewEventsWindow = null;
         }
-        else
-        {
-            _previousWindowState = WindowState;
-        }
+
+        _viewEventsWindow.Show();
+        _viewEventsWindow.Activate();
     }
 
-    private void SendToTray()
-    {
-        Hide();
-        ShowInTaskbar = false;
-        TrayIcon.Visibility = Visibility.Visible;
-    }
-
-    private void RestoreFromTray()
-    {
-        Show();
-        ShowInTaskbar = true;
-        WindowState = _previousWindowState;
-        TrayIcon.Visibility = Visibility.Collapsed;
-        Activate();
-    }
+    public ViewEventsViewModel ViewEventsViewModel => _viewEventsViewModel;
 
     private void TrayIcon_TrayMouseDoubleClick(object sender, RoutedEventArgs e)
     {
-        RestoreFromTray();
+        ShowViewEventsWindow();
     }
 
-    private void RestoreMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ViewEventsMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        RestoreFromTray();
+        ShowViewEventsWindow();
     }
 
     private void ViewAnalyserMenuItem_Click(object sender, RoutedEventArgs e)
@@ -85,14 +57,14 @@ public partial class MainWindow : Window
             }
             else
             {
-                MessageBox.Show($"WindowWatcherAnalyser.exe not found at:\n{analyserPath}",
-                    "Application Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowMessageBox($"WindowWatcherAnalyser.exe not found at:\n{analyserPath}",
+                    "Application Not Found", MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to launch WindowWatcherAnalyser:\n{ex.Message}",
-                "Launch Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowMessageBox($"Failed to launch WindowWatcherAnalyser:\n{ex.Message}",
+                "Launch Error", MessageBoxImage.Error);
         }
     }
 
@@ -113,14 +85,14 @@ public partial class MainWindow : Window
             }
             else
             {
-                MessageBox.Show($"ScreenshotViewer.exe not found at:\n{screenshotViewerPath}",
-                    "Application Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowMessageBox($"ScreenshotViewer.exe not found at:\n{screenshotViewerPath}",
+                    "Application Not Found", MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to launch ScreenshotViewer:\n{ex.Message}",
-                "Launch Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowMessageBox($"Failed to launch ScreenshotViewer:\n{ex.Message}",
+                "Launch Error", MessageBoxImage.Error);
         }
     }
 
@@ -134,5 +106,22 @@ public partial class MainWindow : Window
         TrayIcon.Dispose();
     }
 
-    public MainViewModel ViewModel => _viewModel;
+    private void ShowMessageBox(string message, string title, MessageBoxImage icon)
+    {
+        // Create a temporary visible window to own the MessageBox
+        var tempWindow = new Window
+        {
+            WindowStyle = WindowStyle.None,
+            ShowInTaskbar = false,
+            Width = 0,
+            Height = 0,
+            Left = -10000,
+            Top = -10000,
+            AllowsTransparency = true,
+            Background = System.Windows.Media.Brushes.Transparent
+        };
+        tempWindow.Show();
+        MessageBox.Show(tempWindow, message, title, MessageBoxButton.OK, icon);
+        tempWindow.Close();
+    }
 }

@@ -6,17 +6,21 @@
         xmlns:tb="http://www.hardcodet.net/taskbar"
         xmlns:local="clr-namespace:WindowWatcherDaemon"
         mc:Ignorable="d"
-        Title="Window Watcher" Height="400" Width="650"
-        WindowState="{Binding WindowState, Mode=TwoWay}"
-        StateChanged="Window_StateChanged"
+        Title="Window Watcher" Height="0" Width="0"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Visibility="Hidden"
         Closing="Window_Closing">
     
     <Window.Resources>
         <ContextMenu x:Key="TrayContextMenu">
-            <MenuItem Header="Restore" FontWeight="Bold" Click="RestoreMenuItem_Click"/>
+            <MenuItem Header="View Events" FontWeight="Bold" Click="ViewEventsMenuItem_Click"/>
             <MenuItem Header="View Analyser" Click="ViewAnalyserMenuItem_Click"/>
             <MenuItem Header="View Screenshots" Click="ViewScreenshotsMenuItem_Click"/>
+
             <Separator/>
+
             <MenuItem Header="Exit" Click="ExitMenuItem_Click"/>
         </ContextMenu>
     </Window.Resources>
@@ -26,22 +30,6 @@
                         IconSource="Icon1.ico"
                         ToolTipText="Window Watcher"
                         ContextMenu="{StaticResource TrayContextMenu}"
-                        TrayMouseDoubleClick="TrayIcon_TrayMouseDoubleClick"
-                        Visibility="Collapsed"/>
-        
-        <DataGrid x:Name="ActivityDataGrid"
-                  ItemsSource="{Binding RecentActivity}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  GridLinesVisibility="None"
-                  HeadersVisibility="Column"
-                  SelectionMode="Single"
-                  CanUserResizeRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Time" Binding="{Binding Date, StringFormat='hh:mm:ss tt'}" Width="160"/>
-                <DataGridTextColumn Header="Process" Binding="{Binding ProcessDisplay}" Width="120"/>
-                <DataGridTextColumn Header="Title" Binding="{Binding WindowTitleDisplay}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+                        TrayMouseDoubleClick="TrayIcon_TrayMouseDoubleClick"/>
     </Grid>
 </Window>

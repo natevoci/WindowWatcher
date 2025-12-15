@@ -1,16 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using WindowWatcher.Common.Models;
 
 namespace WindowWatcherDaemon;
 
-public class MainViewModel : INotifyPropertyChanged
+public class ViewEventsViewModel : INotifyPropertyChanged
 {
     private ObservableCollection<ActivityDisplayItem> _recentActivity = new();
-    private WindowState _windowState = WindowState.Normal;
 
     public ObservableCollection<ActivityDisplayItem> RecentActivity
     {
@@ -18,16 +15,6 @@ public class MainViewModel : INotifyPropertyChanged
         set
         {
             _recentActivity = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public WindowState WindowState
-    {
-        get => _windowState;
-        set
-        {
-            _windowState = value;
             OnPropertyChanged();
         }
     }
