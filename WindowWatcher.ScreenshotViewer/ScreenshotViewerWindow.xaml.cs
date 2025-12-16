@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace WindowWatcher.ScreenshotViewer;
 
-public partial class MainWindow : Window
+public partial class ScreenshotViewerWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly SettingsService _settingsService;
@@ -19,7 +19,7 @@ public partial class MainWindow : Window
     private double _scrollStartY;
     private System.Diagnostics.Stopwatch _playTestStopwatch = new System.Diagnostics.Stopwatch();
 
-    public MainWindow()
+    public ScreenshotViewerWindow()
     {
         InitializeComponent();
         _settingsService = new SettingsService();
@@ -27,7 +27,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         // Add keyboard bindings
-        KeyDown += MainWindow_KeyDown;
+        KeyDown += ScreenshotViewerWindow_KeyDown;
 
         // Subscribe to property changes to reset zoom when image changes
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -88,7 +88,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+    private void ScreenshotViewerWindow_KeyDown(object sender, KeyEventArgs e)
     {
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
