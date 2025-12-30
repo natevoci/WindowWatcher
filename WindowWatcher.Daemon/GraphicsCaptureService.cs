@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -20,11 +21,14 @@ public sealed class GraphicsCaptureService : IDisposable
     public GraphicsCaptureService(LoggingService loggingService)
     {
         _loggingService = loggingService;
+        var deviceTimer = Stopwatch.StartNew();
         _direct3DDevice = CreateDirect3DDevice();
+        _loggingService.LogDebug($"Initialized the Direct3D capture device in {deviceTimer.ElapsedMilliseconds} ms.");
     }
 
     public async Task<BitmapSource?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
     {
+        var captureTimer = Stopwatch.StartNew();
         if (windowHandle == IntPtr.Zero)
         {
             _loggingService.LogWarning("Window capture was requested with an invalid window handle.");
@@ -44,11 +48,15 @@ public sealed class GraphicsCaptureService : IDisposable
             return null;
         }
 
-        return await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogTrace($"Created graphics capture item for window handle 0x{windowHandle.ToInt64():X} with size {item.Size.Width}x{item.Size.Height}.");
+        BitmapSource? capture = await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogDebug($"Window capture for handle 0x{windowHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.PixelWidth}x{capture.PixelHeight}")} in {captureTimer.ElapsedMilliseconds} ms.");
+        return capture;
     }
 
     public async Task<BitmapSource?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
     {
+        var captureTimer = Stopwatch.StartNew();
         if (monitorHandle == IntPtr.Zero)
         {
             _loggingService.LogWarning("Monitor capture was requested with an invalid monitor handle.");
@@ -68,7 +76,10 @@ public sealed class GraphicsCaptureService : IDisposable
             return null;
         }
 
-        return await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogTrace($"Created graphics capture item for monitor handle 0x{monitorHandle.ToInt64():X} with size {item.Size.Width}x{item.Size.Height}.");
+        BitmapSource? capture = await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogDebug($"Monitor capture for handle 0x{monitorHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.PixelWidth}x{capture.PixelHeight}")} in {captureTimer.ElapsedMilliseconds} ms.");
+        return capture;
     }
 
     public async Task<BitmapSource?> CaptureDesktopAsync(CancellationToken cancellationToken)
@@ -85,6 +96,8 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private async Task<BitmapSource?> CaptureItemAsync(GraphicsCaptureItem item, CancellationToken cancellationToken)
     {
+        var captureTimer = Stopwatch.StartNew();
+        _loggingService.LogTrace($"Creating frame pool and capture session for a {item.Size.Width}x{item.Size.Height} item.");
         using var framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
             _direct3DDevice,
             DirectXPixelFormat.B8G8R8A8UIntNormalized,
@@ -102,6 +115,7 @@ public sealed class GraphicsCaptureService : IDisposable
                 var frame = sender.TryGetNextFrame();
                 if (frame != null)
                 {
+                    _loggingService.LogTrace($"Graphics capture frame arrived after {captureTimer.ElapsedMilliseconds} ms.");
                     tcs.TrySetResult(frame);
                 }
             }
@@ -113,6 +127,7 @@ public sealed class GraphicsCaptureService : IDisposable
 
         framePool.FrameArrived += handler;
         session.StartCapture();
+        _loggingService.LogTrace("Graphics capture session started; waiting for the first frame.");
 
         try
         {
@@ -121,10 +136,13 @@ public sealed class GraphicsCaptureService : IDisposable
             using var cancellationRegistration = linkedCts.Token.Register(() => tcs.TrySetCanceled(linkedCts.Token));
 
             using var frame = await tcs.Task;
-            return await ConvertFrameToBitmapSourceAsync(frame);
+            BitmapSource? bitmap = await ConvertFrameToBitmapSourceAsync(frame);
+            _loggingService.LogTrace($"Graphics capture frame processing completed in {captureTimer.ElapsedMilliseconds} ms.");
+            return bitmap;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _loggingService.LogTrace($"Graphics capture was cancelled after {captureTimer.ElapsedMilliseconds} ms.");
             return null;
         }
         catch (OperationCanceledException)
@@ -140,12 +158,14 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private async Task<BitmapSource?> ConvertFrameToBitmapSourceAsync(Direct3D11CaptureFrame frame)
     {
+        var conversionTimer = Stopwatch.StartNew();
         SoftwareBitmap? softwareBitmap = null;
         SoftwareBitmap? normalizedBitmap = null;
 
         try
         {
             softwareBitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Surface);
+            _loggingService.LogTrace($"Copied capture surface to a software bitmap in {conversionTimer.ElapsedMilliseconds} ms.");
             normalizedBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
 
             int width = normalizedBitmap.PixelWidth;
@@ -162,6 +182,7 @@ public sealed class GraphicsCaptureService : IDisposable
 
             var bitmapSource = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
             bitmapSource.Freeze();
+            _loggingService.LogDebug($"Converted graphics capture frame to {width}x{height} BGRA bitmap in {conversionTimer.ElapsedMilliseconds} ms ({pixels.Length:N0} bytes).");
             return bitmapSource;
         }
         finally
@@ -173,10 +194,12 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private GraphicsCaptureItem? CreateItemForWindow(IntPtr windowHandle)
     {
+        var itemTimer = Stopwatch.StartNew();
         var interop = GetCaptureItemInterop();
         Guid iid = IID_IGraphicsCaptureItem;
 
         int hr = interop.CreateForWindow(windowHandle, ref iid, out IntPtr itemPointer);
+        _loggingService.LogTrace($"CreateForWindow for handle 0x{windowHandle.ToInt64():X} returned HRESULT 0x{hr:X8} in {itemTimer.ElapsedMilliseconds} ms.");
         if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED || hr == E_INVALIDARG)
         {
             _loggingService.LogWarning($"Windows could not create a capture item for the active window (HRESULT 0x{hr:X8}).");
@@ -198,10 +221,12 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private GraphicsCaptureItem? CreateItemForMonitor(IntPtr monitorHandle)
     {
+        var itemTimer = Stopwatch.StartNew();
         var interop = GetCaptureItemInterop();
         Guid iid = IID_IGraphicsCaptureItem;
 
         int hr = interop.CreateForMonitor(monitorHandle, ref iid, out IntPtr itemPointer);
+        _loggingService.LogTrace($"CreateForMonitor for handle 0x{monitorHandle.ToInt64():X} returned HRESULT 0x{hr:X8} in {itemTimer.ElapsedMilliseconds} ms.");
         if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED || hr == E_INVALIDARG)
         {
             _loggingService.LogWarning($"Windows could not create a capture item for the monitor (HRESULT 0x{hr:X8}).");
@@ -223,6 +248,7 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private GraphicsCaptureItem? CreateProjectedCaptureItem(IntPtr itemPointer, string sourceDescription)
     {
+        var projectionTimer = Stopwatch.StartNew();
         try
         {
             // The interop APIs hand back a raw ABI pointer to IGraphicsCaptureItem. Classic COM
@@ -233,6 +259,8 @@ public sealed class GraphicsCaptureService : IDisposable
             {
                 _loggingService.LogWarning($"WinRT projection returned null for capture item from {sourceDescription}.");
             }
+
+            _loggingService.LogTrace($"Projected graphics capture item for {sourceDescription} in {projectionTimer.ElapsedMilliseconds} ms.");
 
             return captureItem;
         }

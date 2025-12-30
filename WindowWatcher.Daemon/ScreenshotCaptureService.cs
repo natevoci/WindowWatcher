@@ -1,5 +1,6 @@
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using System.Windows.Forms;
 using System.Windows;
 using System.Windows.Media;
@@ -59,6 +60,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         {
             if (_captureTask != null)
             {
+                _loggingService.LogTrace("Screenshot capture service start was ignored because the capture loop is already running.");
                 return;
             }
 
@@ -67,10 +69,13 @@ public sealed class ScreenshotCaptureService : IDisposable
             _cancellationTokenSource = new CancellationTokenSource();
             _captureTask = Task.Run(() => CaptureLoopAsync(_cancellationTokenSource.Token));
         }
+
+        _loggingService.LogDebug("Screenshot capture service started.");
     }
 
     public void Stop()
     {
+        var stopTimer = Stopwatch.StartNew();
         CancellationTokenSource? cts;
         Task? captureTask;
 
@@ -84,6 +89,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (cts != null)
         {
+            _loggingService.LogTrace("Screenshot capture service cancellation requested.");
             cts.Cancel();
         }
 
@@ -104,6 +110,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         }
 
         cts?.Dispose();
+        _loggingService.LogDebug($"Screenshot capture service stopped in {stopTimer.ElapsedMilliseconds} ms.");
     }
 
     public bool ToggleCapturing()
@@ -111,12 +118,14 @@ public sealed class ScreenshotCaptureService : IDisposable
         lock (_sync)
         {
             _isCapturing = !_isCapturing;
+            _loggingService.LogDebug($"Screenshot capture was {(_isCapturing ? "enabled" : "disabled")}.");
             return _isCapturing;
         }
     }
 
     public async Task<bool> CaptureSingleScreenshotAsync(string? captureTargetOverride = null, CancellationToken cancellationToken = default)
     {
+        var captureTimer = Stopwatch.StartNew();
         var settings = _settingsService.LoadSettings();
         if (!string.IsNullOrWhiteSpace(captureTargetOverride))
         {
@@ -133,11 +142,15 @@ public sealed class ScreenshotCaptureService : IDisposable
             };
         }
 
-        return await SaveScreenshotAsync(settings, cancellationToken);
+        _loggingService.LogDebug($"Single screenshot capture started for target '{settings.ScreenshotCaptureTarget}'.");
+        bool saved = await SaveScreenshotAsync(settings, cancellationToken);
+        _loggingService.LogDebug($"Single screenshot capture for target '{settings.ScreenshotCaptureTarget}' {(saved ? "completed" : "did not save an image")} in {captureTimer.ElapsedMilliseconds} ms.");
+        return saved;
     }
 
     private async Task CaptureLoopAsync(CancellationToken cancellationToken)
     {
+        _loggingService.LogTrace("Screenshot capture loop started.");
         while (!cancellationToken.IsCancellationRequested)
         {
             AppSettings settings = _settingsService.LoadSettings();
@@ -145,6 +158,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
             try
             {
+                _loggingService.LogTrace($"Screenshot capture loop waiting {intervalSeconds} second(s).");
                 await Task.Delay(TimeSpan.FromSeconds(intervalSeconds), cancellationToken);
             }
             catch (TaskCanceledException)
@@ -160,6 +174,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
             if (!isCapturing)
             {
+                _loggingService.LogTrace("Screenshot capture loop skipped a tick because capture is disabled.");
                 continue;
             }
 
@@ -167,9 +182,11 @@ public sealed class ScreenshotCaptureService : IDisposable
             {
                 if (!ShouldCapture())
                 {
+                    _loggingService.LogTrace("Screenshot capture loop skipped a tick because no activity or window change occurred.");
                     continue;
                 }
 
+                var captureTimer = Stopwatch.StartNew();
                 bool saved = await SaveScreenshotAsync(settings, cancellationToken);
                 if (saved)
                 {
@@ -178,6 +195,8 @@ public sealed class ScreenshotCaptureService : IDisposable
                         _lastSavedUtc = DateTime.UtcNow;
                         _windowChangedSinceLastCapture = false;
                     }
+
+                    _loggingService.LogDebug($"Scheduled screenshot capture saved in {captureTimer.ElapsedMilliseconds} ms.");
                 }
             }
             catch (Exception ex)
@@ -185,6 +204,8 @@ public sealed class ScreenshotCaptureService : IDisposable
                 _loggingService.LogError("Screenshot capture failed.", ex);
             }
         }
+
+        _loggingService.LogTrace("Screenshot capture loop stopped.");
     }
 
     private bool ShouldCapture()
@@ -200,18 +221,23 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (lastSavedUtc == DateTime.MinValue)
         {
+            _loggingService.LogTrace("Screenshot capture is required because no screenshot has been saved yet.");
             return true;
         }
 
         bool activitySinceLastCapture = _userActivityService.HasActivitySince(lastSavedUtc);
+        _loggingService.LogTrace($"Screenshot capture decision: activitySinceLastCapture={activitySinceLastCapture}, windowChanged={windowChanged}.");
         return activitySinceLastCapture || windowChanged;
     }
 
     private async Task<bool> SaveScreenshotAsync(AppSettings settings, CancellationToken cancellationToken)
     {
+        var totalTimer = Stopwatch.StartNew();
+        _loggingService.LogDebug($"Capturing screenshot for target '{settings.ScreenshotCaptureTarget}'.");
         BitmapSource? bitmap = await CaptureScreenshotAsync(settings.ScreenshotCaptureTarget, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
         {
+            _loggingService.LogTrace($"Screenshot capture for target '{settings.ScreenshotCaptureTarget}' was cancelled before persistence.");
             return false;
         }
 
@@ -233,10 +259,12 @@ public sealed class ScreenshotCaptureService : IDisposable
         string filename = $"{now:HH.mm.ss.ffff}.png";
         string outputPath = Path.Combine(dayFolder, filename);
 
+        var encodeTimer = Stopwatch.StartNew();
         using var fileStream = File.Create(outputPath);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         encoder.Save(fileStream);
+        _loggingService.LogDebug($"Saved {bitmap.PixelWidth}x{bitmap.PixelHeight} screenshot to '{outputPath}' in {encodeTimer.ElapsedMilliseconds} ms; total capture time was {totalTimer.ElapsedMilliseconds} ms.");
         return true;
     }
 
@@ -244,20 +272,24 @@ public sealed class ScreenshotCaptureService : IDisposable
     {
         if (string.Equals(captureTarget, "ActiveApplication", StringComparison.OrdinalIgnoreCase))
         {
+            _loggingService.LogTrace("Routing screenshot capture to the active application.");
             return await CaptureActiveApplicationAsync(cancellationToken);
         }
 
         if (captureTarget.StartsWith("Screen:", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(captureTarget["Screen:".Length..], out int screenIndex))
         {
+            _loggingService.LogTrace($"Routing screenshot capture to screen index {screenIndex}.");
             return await CaptureSingleScreenAsync(screenIndex, cancellationToken);
         }
 
+        _loggingService.LogTrace("Routing screenshot capture to all screens.");
         return await CaptureAllScreensAsync(cancellationToken);
     }
 
     private async Task<BitmapSource?> CaptureAllScreensAsync(CancellationToken cancellationToken)
     {
+        var captureTimer = Stopwatch.StartNew();
         var screens = Screen.AllScreens;
         if (screens.Length == 0)
         {
@@ -276,6 +308,8 @@ public sealed class ScreenshotCaptureService : IDisposable
             union = System.Drawing.Rectangle.Union(union, screens[i].Bounds);
         }
 
+        _loggingService.LogDebug($"Capturing {screens.Length} screen(s) into a {union.Width}x{union.Height} virtual-screen union.");
+
         var captures = new List<(System.Drawing.Rectangle bounds, BitmapSource bitmap)>();
         foreach (var screen in screens)
         {
@@ -285,6 +319,8 @@ public sealed class ScreenshotCaptureService : IDisposable
             }
 
             IntPtr monitorHandle = GetMonitorHandleForScreen(screen);
+            var monitorTimer = Stopwatch.StartNew();
+            _loggingService.LogTrace($"Capturing monitor '{screen.DeviceName}' (handle 0x{monitorHandle.ToInt64():X}, bounds {screen.Bounds}).");
             BitmapSource? bitmap = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
             if (cancellationToken.IsCancellationRequested)
             {
@@ -294,6 +330,7 @@ public sealed class ScreenshotCaptureService : IDisposable
             if (bitmap != null)
             {
                 captures.Add((screen.Bounds, bitmap));
+                _loggingService.LogDebug($"Captured monitor '{screen.DeviceName}' as {bitmap.PixelWidth}x{bitmap.PixelHeight} in {monitorTimer.ElapsedMilliseconds} ms.");
             }
             else
             {
@@ -320,8 +357,10 @@ public sealed class ScreenshotCaptureService : IDisposable
         }
 
         var output = new RenderTargetBitmap(union.Width, union.Height, 96, 96, PixelFormats.Pbgra32);
+        var compositionTimer = Stopwatch.StartNew();
         output.Render(drawingVisual);
         output.Freeze();
+        _loggingService.LogDebug($"Composed {captures.Count} screen image(s) into {union.Width}x{union.Height} in {compositionTimer.ElapsedMilliseconds} ms; all-screen capture took {captureTimer.ElapsedMilliseconds} ms.");
         return output;
     }
 
@@ -350,6 +389,8 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         var screen = screens[screenIndex];
         IntPtr monitorHandle = GetMonitorHandleForScreen(screen);
+        var captureTimer = Stopwatch.StartNew();
+        _loggingService.LogDebug($"Capturing screen index {screenIndex} ('{screen.DeviceName}', handle 0x{monitorHandle.ToInt64():X}, bounds {screen.Bounds}).");
         BitmapSource? capture = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
         {
@@ -358,6 +399,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (capture != null)
         {
+            _loggingService.LogDebug($"Captured screen index {screenIndex} as {capture.PixelWidth}x{capture.PixelHeight} in {captureTimer.ElapsedMilliseconds} ms.");
             return capture;
         }
 
@@ -376,9 +418,11 @@ public sealed class ScreenshotCaptureService : IDisposable
         }
 
         IntPtr windowHandle = windowChanged?.WindowHandle ?? IntPtr.Zero;
+        bool usedForegroundFallback = false;
         if (windowHandle == IntPtr.Zero)
         {
             windowHandle = _windowWatcherService.GetForegroundWindow();
+            usedForegroundFallback = true;
         }
 
         if (windowHandle == IntPtr.Zero)
@@ -387,7 +431,11 @@ public sealed class ScreenshotCaptureService : IDisposable
             return null;
         }
 
-        return await _graphicsCaptureService.CaptureWindowAsync(windowHandle, cancellationToken);
+        var captureTimer = Stopwatch.StartNew();
+        _loggingService.LogDebug($"Capturing active application window handle 0x{windowHandle.ToInt64():X} using {(usedForegroundFallback ? "the foreground-window fallback" : "the last window-change event")}.");
+        BitmapSource? capture = await _graphicsCaptureService.CaptureWindowAsync(windowHandle, cancellationToken);
+        _loggingService.LogDebug($"Active application capture {(capture == null ? "did not produce an image" : $"produced a {capture.PixelWidth}x{capture.PixelHeight} image")} in {captureTimer.ElapsedMilliseconds} ms.");
+        return capture;
     }
 
     private static IntPtr GetMonitorHandleForScreen(Screen screen)
@@ -399,6 +447,8 @@ public sealed class ScreenshotCaptureService : IDisposable
 
     private async Task<BitmapSource?> CaptureDesktopFallbackAsync(CancellationToken cancellationToken, System.Drawing.Rectangle? cropBounds = null)
     {
+        var fallbackTimer = Stopwatch.StartNew();
+        _loggingService.LogDebug($"Starting desktop fallback capture{(cropBounds == null ? string.Empty : $" for bounds {cropBounds.Value}")}.");
         BitmapSource? desktopCapture = await _graphicsCaptureService.CaptureDesktopAsync(cancellationToken);
         if (desktopCapture == null)
         {
@@ -408,6 +458,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (cropBounds == null)
         {
+            _loggingService.LogDebug($"Desktop fallback produced {desktopCapture.PixelWidth}x{desktopCapture.PixelHeight} in {fallbackTimer.ElapsedMilliseconds} ms.");
             return desktopCapture;
         }
 
@@ -428,6 +479,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         var cropped = new CroppedBitmap(desktopCapture, new Int32Rect(x, y, width, height));
         cropped.Freeze();
+        _loggingService.LogDebug($"Desktop fallback crop produced {cropped.PixelWidth}x{cropped.PixelHeight} in {fallbackTimer.ElapsedMilliseconds} ms.");
         return cropped;
     }
 
@@ -438,6 +490,8 @@ public sealed class ScreenshotCaptureService : IDisposable
             _lastWindowChangedEvent = e;
             _windowChangedSinceLastCapture = true;
         }
+
+        _loggingService.LogTrace($"Screenshot capture received a window change for handle 0x{e.WindowHandle.ToInt64():X}.");
     }
 
     public void Dispose()
