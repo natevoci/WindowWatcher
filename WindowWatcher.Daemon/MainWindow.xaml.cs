@@ -11,12 +11,12 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService;
     private ViewEventsWindow? _viewEventsWindow;
 
-    public MainWindow()
+    public MainWindow(ViewEventsViewModel viewEventsViewModel, SettingsService settingsService)
     {
         InitializeComponent();
 
-        _viewEventsViewModel = new ViewEventsViewModel();
-        _settingsService = new SettingsService();
+        _viewEventsViewModel = viewEventsViewModel;
+        _settingsService = settingsService;
     }
 
     private void ShowViewEventsWindow()

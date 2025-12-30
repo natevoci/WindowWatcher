@@ -8,7 +8,7 @@ public class WindowWatcherService : IDisposable
 {
     private readonly CsvDataService _csvDataService;
     private readonly SettingsService _settingsService;
-    private readonly Action<WindowActivityEvent> _onActivityEvent;
+    private readonly ViewEventsViewModel _viewEventsViewModel;
 
     private UserActivityHook? _activityHook;
     private DateTime _lastActivity = DateTime.MinValue;
@@ -19,11 +19,11 @@ public class WindowWatcherService : IDisposable
     public WindowWatcherService(
         CsvDataService csvDataService,
         SettingsService settingsService,
-        Action<WindowActivityEvent> onActivityEvent)
+        ViewEventsViewModel viewEventsViewModel)
     {
         _csvDataService = csvDataService;
         _settingsService = settingsService;
-        _onActivityEvent = onActivityEvent;
+        _viewEventsViewModel = viewEventsViewModel;
     }
 
     public void Start()
@@ -89,7 +89,7 @@ public class WindowWatcherService : IDisposable
                         EventType = WindowActivityEventType.Inactive
                     };
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
-                    _onActivityEvent(evt);
+                    _viewEventsViewModel.AddActivity(evt);
 
                     inactiveWritten = true;
                     _lastActivity = DateTime.UtcNow;
@@ -115,7 +115,7 @@ public class WindowWatcherService : IDisposable
                         WindowTitle = lastAppTitle
                     };
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
-                    _onActivityEvent(evt);
+                    _viewEventsViewModel.AddActivity(evt);
 
                     inactiveWritten = false;
                     _lastActivity = DateTime.UtcNow;

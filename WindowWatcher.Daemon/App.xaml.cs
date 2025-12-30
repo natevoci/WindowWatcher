@@ -1,4 +1,5 @@
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
 using Velopack;
 using WindowWatcher.Common.Services;
 
@@ -9,8 +10,7 @@ public partial class App : Application
     private const string GithubOwner = "natevoci";
     private const string GithubRepo = "WindowWatcher";
 
-    private WindowWatcherService? _windowWatcherService;
-    private MainWindow? _mainWindow;
+    private ServiceProvider? _serviceProvider;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -22,12 +22,13 @@ public partial class App : Application
         // Check for updates
         CheckForUpdates();
 
-        // Initialize services
-        var settingsService = new SettingsService();
-        var csvDataService = new CsvDataService();
-        var migrationUtility = new CsvMigrationUtility(settingsService);
+        // Build DI container
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        _serviceProvider = services.BuildServiceProvider();
 
         // Perform CSV migration if needed
+        var migrationUtility = _serviceProvider.GetRequiredService<CsvMigrationUtility>();
         try
         {
             migrationUtility.MigrateCsvFilesIfNeeded();
@@ -50,23 +51,30 @@ public partial class App : Application
             tempWindow.Close();
         }
 
-        // Create main window
-        _mainWindow = new MainWindow();
-
         // Start window watcher service
-        _windowWatcherService = new WindowWatcherService(
-            csvDataService,
-            settingsService,
-            evt => _mainWindow.ViewEventsViewModel.AddActivity(evt));
-        _windowWatcherService.Start();
+        var windowWatcherService = _serviceProvider.GetRequiredService<WindowWatcherService>();
+        windowWatcherService.Start();
 
-        _mainWindow.Show();
+        // Show main window
+        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        mainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _windowWatcherService?.Stop();
+        _serviceProvider?.GetService<WindowWatcherService>()?.Stop();
+        _serviceProvider?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void ConfigureServices(ServiceCollection services)
+    {
+        services.AddSingleton<SettingsService>();
+        services.AddSingleton<CsvDataService>();
+        services.AddSingleton<CsvMigrationUtility>();
+        services.AddSingleton<ViewEventsViewModel>();
+        services.AddSingleton<WindowWatcherService>();
+        services.AddTransient<MainWindow>();
     }
 
     private async void CheckForUpdates()
