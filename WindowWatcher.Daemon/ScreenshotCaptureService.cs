@@ -2,9 +2,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Windows.Forms;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
@@ -234,14 +231,14 @@ public sealed class ScreenshotCaptureService : IDisposable
     {
         var totalTimer = Stopwatch.StartNew();
         _loggingService.LogDebug($"Capturing screenshot for target '{settings.ScreenshotCaptureTarget}'.");
-        BitmapSource? bitmap = await CaptureScreenshotAsync(settings.ScreenshotCaptureTarget, cancellationToken);
+        CapturedImage? image = await CaptureScreenshotAsync(settings.ScreenshotCaptureTarget, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
         {
             _loggingService.LogTrace($"Screenshot capture for target '{settings.ScreenshotCaptureTarget}' was cancelled before persistence.");
             return false;
         }
 
-        if (bitmap == null)
+        if (image == null)
         {
             if (!cancellationToken.IsCancellationRequested)
             {
@@ -261,14 +258,12 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         var encodeTimer = Stopwatch.StartNew();
         using var fileStream = File.Create(outputPath);
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        encoder.Save(fileStream);
-        _loggingService.LogDebug($"Saved {bitmap.PixelWidth}x{bitmap.PixelHeight} screenshot to '{outputPath}' in {encodeTimer.ElapsedMilliseconds} ms; total capture time was {totalTimer.ElapsedMilliseconds} ms.");
+        FastPngEncoder.Encode(image.Pixels, image.Width, image.Height, image.Stride, fileStream);
+        _loggingService.LogDebug($"Saved {image.Width}x{image.Height} screenshot to '{outputPath}' in {encodeTimer.ElapsedMilliseconds} ms; total capture time was {totalTimer.ElapsedMilliseconds} ms.");
         return true;
     }
 
-    private async Task<BitmapSource?> CaptureScreenshotAsync(string captureTarget, CancellationToken cancellationToken)
+    private async Task<CapturedImage?> CaptureScreenshotAsync(string captureTarget, CancellationToken cancellationToken)
     {
         if (string.Equals(captureTarget, "ActiveApplication", StringComparison.OrdinalIgnoreCase))
         {
@@ -287,7 +282,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         return await CaptureAllScreensAsync(cancellationToken);
     }
 
-    private async Task<BitmapSource?> CaptureAllScreensAsync(CancellationToken cancellationToken)
+    private async Task<CapturedImage?> CaptureAllScreensAsync(CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         var screens = Screen.AllScreens;
@@ -310,7 +305,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         _loggingService.LogDebug($"Capturing {screens.Length} screen(s) into a {union.Width}x{union.Height} virtual-screen union.");
 
-        var captures = new List<(System.Drawing.Rectangle bounds, BitmapSource bitmap)>();
+        var captures = new List<(System.Drawing.Rectangle bounds, CapturedImage image)>();
         foreach (var screen in screens)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -321,7 +316,7 @@ public sealed class ScreenshotCaptureService : IDisposable
             IntPtr monitorHandle = GetMonitorHandleForScreen(screen);
             var monitorTimer = Stopwatch.StartNew();
             _loggingService.LogTrace($"Capturing monitor '{screen.DeviceName}' (handle 0x{monitorHandle.ToInt64():X}, bounds {screen.Bounds}).");
-            BitmapSource? bitmap = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
+            CapturedImage? bitmap = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
             if (cancellationToken.IsCancellationRequested)
             {
                 return null;
@@ -330,13 +325,13 @@ public sealed class ScreenshotCaptureService : IDisposable
             if (bitmap != null)
             {
                 captures.Add((screen.Bounds, bitmap));
-                _loggingService.LogDebug($"Captured monitor '{screen.DeviceName}' as {bitmap.PixelWidth}x{bitmap.PixelHeight} in {monitorTimer.ElapsedMilliseconds} ms.");
+                _loggingService.LogDebug($"Captured monitor '{screen.DeviceName}' as {bitmap.Width}x{bitmap.Height} in {monitorTimer.ElapsedMilliseconds} ms.");
             }
             else
             {
                 _loggingService.LogWarning(
                     $"Monitor capture failed for '{screen.DeviceName}' with bounds {screen.Bounds} and monitor handle 0x{monitorHandle.ToInt64():X}. Using a black placeholder.");
-                captures.Add((screen.Bounds, CreateBlackBitmap(screen.Bounds.Width, screen.Bounds.Height)));
+                captures.Add((screen.Bounds, CreateBlackImage(screen.Bounds.Width, screen.Bounds.Height)));
             }
         }
 
@@ -345,26 +340,50 @@ public sealed class ScreenshotCaptureService : IDisposable
             return null;
         }
 
-        var drawingVisual = new DrawingVisual();
-        using (DrawingContext drawingContext = drawingVisual.RenderOpen())
+        int unionStride = checked(union.Width * 4);
+        byte[] unionPixels = new byte[checked(unionStride * union.Height)];
+        // Fill with opaque black so any gap between non-adjacent monitors is not left transparent.
+        for (int alpha = 3; alpha < unionPixels.Length; alpha += 4)
         {
-            foreach (var capture in captures)
-            {
-                double x = capture.bounds.Left - union.Left;
-                double y = capture.bounds.Top - union.Top;
-                drawingContext.DrawImage(capture.bitmap, new Rect(x, y, capture.bounds.Width, capture.bounds.Height));
-            }
+            unionPixels[alpha] = byte.MaxValue;
         }
 
-        var output = new RenderTargetBitmap(union.Width, union.Height, 96, 96, PixelFormats.Pbgra32);
         var compositionTimer = Stopwatch.StartNew();
-        output.Render(drawingVisual);
-        output.Freeze();
+        foreach (var capture in captures)
+        {
+            int destX = capture.bounds.Left - union.Left;
+            int destY = capture.bounds.Top - union.Top;
+            BlitInto(unionPixels, unionStride, union.Width, union.Height, capture.image, destX, destY);
+        }
+
         _loggingService.LogDebug($"Composed {captures.Count} screen image(s) into {union.Width}x{union.Height} in {compositionTimer.ElapsedMilliseconds} ms; all-screen capture took {captureTimer.ElapsedMilliseconds} ms.");
-        return output;
+        return new CapturedImage(union.Width, union.Height, unionStride, unionPixels);
     }
 
-    private static BitmapSource CreateBlackBitmap(int width, int height)
+    private static void BlitInto(byte[] dest, int destStride, int destWidth, int destHeight, CapturedImage src, int destX, int destY)
+    {
+        if (destX >= destWidth || destY >= destHeight)
+        {
+            return;
+        }
+
+        int copyWidth = Math.Min(src.Width, destWidth - destX);
+        int copyHeight = Math.Min(src.Height, destHeight - destY);
+        if (copyWidth <= 0 || copyHeight <= 0)
+        {
+            return;
+        }
+
+        int copyBytes = copyWidth * 4;
+        for (int row = 0; row < copyHeight; row++)
+        {
+            int srcOffset = row * src.Stride;
+            int destOffset = ((destY + row) * destStride) + (destX * 4);
+            Buffer.BlockCopy(src.Pixels, srcOffset, dest, destOffset, copyBytes);
+        }
+    }
+
+    private static CapturedImage CreateBlackImage(int width, int height)
     {
         int stride = checked(width * 4);
         byte[] pixels = new byte[checked(stride * height)];
@@ -373,12 +392,10 @@ public sealed class ScreenshotCaptureService : IDisposable
             pixels[alphaOffset] = byte.MaxValue;
         }
 
-        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-        bitmap.Freeze();
-        return bitmap;
+        return new CapturedImage(width, height, stride, pixels);
     }
 
-    private async Task<BitmapSource?> CaptureSingleScreenAsync(int screenIndex, CancellationToken cancellationToken)
+    private async Task<CapturedImage?> CaptureSingleScreenAsync(int screenIndex, CancellationToken cancellationToken)
     {
         var screens = Screen.AllScreens;
         if (screenIndex < 0 || screenIndex >= screens.Length)
@@ -391,7 +408,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         IntPtr monitorHandle = GetMonitorHandleForScreen(screen);
         var captureTimer = Stopwatch.StartNew();
         _loggingService.LogDebug($"Capturing screen index {screenIndex} ('{screen.DeviceName}', handle 0x{monitorHandle.ToInt64():X}, bounds {screen.Bounds}).");
-        BitmapSource? capture = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
+        CapturedImage? capture = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
         {
             return null;
@@ -399,7 +416,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (capture != null)
         {
-            _loggingService.LogDebug($"Captured screen index {screenIndex} as {capture.PixelWidth}x{capture.PixelHeight} in {captureTimer.ElapsedMilliseconds} ms.");
+            _loggingService.LogDebug($"Captured screen index {screenIndex} as {capture.Width}x{capture.Height} in {captureTimer.ElapsedMilliseconds} ms.");
             return capture;
         }
 
@@ -409,7 +426,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         return await CaptureDesktopFallbackAsync(cancellationToken, screen.Bounds);
     }
 
-    private async Task<BitmapSource?> CaptureActiveApplicationAsync(CancellationToken cancellationToken)
+    private async Task<CapturedImage?> CaptureActiveApplicationAsync(CancellationToken cancellationToken)
     {
         WindowChangedEventArgs? windowChanged;
         lock (_sync)
@@ -433,8 +450,8 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         var captureTimer = Stopwatch.StartNew();
         _loggingService.LogDebug($"Capturing active application window handle 0x{windowHandle.ToInt64():X} using {(usedForegroundFallback ? "the foreground-window fallback" : "the last window-change event")}.");
-        BitmapSource? capture = await _graphicsCaptureService.CaptureWindowAsync(windowHandle, cancellationToken);
-        _loggingService.LogDebug($"Active application capture {(capture == null ? "did not produce an image" : $"produced a {capture.PixelWidth}x{capture.PixelHeight} image")} in {captureTimer.ElapsedMilliseconds} ms.");
+        CapturedImage? capture = await _graphicsCaptureService.CaptureWindowAsync(windowHandle, cancellationToken);
+        _loggingService.LogDebug($"Active application capture {(capture == null ? "did not produce an image" : $"produced a {capture.Width}x{capture.Height} image")} in {captureTimer.ElapsedMilliseconds} ms.");
         return capture;
     }
 
@@ -445,11 +462,11 @@ public sealed class ScreenshotCaptureService : IDisposable
         return MonitorFromPoint(new POINT { X = centerX, Y = centerY }, MONITOR_DEFAULTTONEAREST);
     }
 
-    private async Task<BitmapSource?> CaptureDesktopFallbackAsync(CancellationToken cancellationToken, System.Drawing.Rectangle? cropBounds = null)
+    private async Task<CapturedImage?> CaptureDesktopFallbackAsync(CancellationToken cancellationToken, System.Drawing.Rectangle? cropBounds = null)
     {
         var fallbackTimer = Stopwatch.StartNew();
         _loggingService.LogDebug($"Starting desktop fallback capture{(cropBounds == null ? string.Empty : $" for bounds {cropBounds.Value}")}.");
-        BitmapSource? desktopCapture = await _graphicsCaptureService.CaptureDesktopAsync(cancellationToken);
+        CapturedImage? desktopCapture = await _graphicsCaptureService.CaptureDesktopAsync(cancellationToken);
         if (desktopCapture == null)
         {
             _loggingService.LogWarning("Desktop fallback capture did not return an image.");
@@ -458,7 +475,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (cropBounds == null)
         {
-            _loggingService.LogDebug($"Desktop fallback produced {desktopCapture.PixelWidth}x{desktopCapture.PixelHeight} in {fallbackTimer.ElapsedMilliseconds} ms.");
+            _loggingService.LogDebug($"Desktop fallback produced {desktopCapture.Width}x{desktopCapture.Height} in {fallbackTimer.ElapsedMilliseconds} ms.");
             return desktopCapture;
         }
 
@@ -469,18 +486,31 @@ public sealed class ScreenshotCaptureService : IDisposable
         int height = cropBounds.Value.Height;
 
         if (x < 0 || y < 0 || width <= 0 || height <= 0
-            || x + width > desktopCapture.PixelWidth
-            || y + height > desktopCapture.PixelHeight)
+            || x + width > desktopCapture.Width
+            || y + height > desktopCapture.Height)
         {
             _loggingService.LogWarning(
-                $"Desktop fallback crop is out of range. VirtualScreen={virtualScreen}, Crop={cropBounds.Value}, ImageSize={desktopCapture.PixelWidth}x{desktopCapture.PixelHeight}.");
+                $"Desktop fallback crop is out of range. VirtualScreen={virtualScreen}, Crop={cropBounds.Value}, ImageSize={desktopCapture.Width}x{desktopCapture.Height}.");
             return null;
         }
 
-        var cropped = new CroppedBitmap(desktopCapture, new Int32Rect(x, y, width, height));
-        cropped.Freeze();
-        _loggingService.LogDebug($"Desktop fallback crop produced {cropped.PixelWidth}x{cropped.PixelHeight} in {fallbackTimer.ElapsedMilliseconds} ms.");
+        var cropped = CropImage(desktopCapture, x, y, width, height);
+        _loggingService.LogDebug($"Desktop fallback crop produced {cropped.Width}x{cropped.Height} in {fallbackTimer.ElapsedMilliseconds} ms.");
         return cropped;
+    }
+
+    private static CapturedImage CropImage(CapturedImage source, int x, int y, int width, int height)
+    {
+        int stride = checked(width * 4);
+        byte[] pixels = new byte[checked(stride * height)];
+        int rowBytes = width * 4;
+        for (int row = 0; row < height; row++)
+        {
+            int srcOffset = ((y + row) * source.Stride) + (x * 4);
+            Buffer.BlockCopy(source.Pixels, srcOffset, pixels, row * stride, rowBytes);
+        }
+
+        return new CapturedImage(width, height, stride, pixels);
     }
 
     private void WindowWatcherServiceOnWindowChanged(object? sender, WindowChangedEventArgs e)

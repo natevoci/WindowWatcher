@@ -1,9 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Diagnostics;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
@@ -26,7 +23,7 @@ public sealed class GraphicsCaptureService : IDisposable
         _loggingService.LogDebug($"Initialized the Direct3D capture device in {deviceTimer.ElapsedMilliseconds} ms.");
     }
 
-    public async Task<BitmapSource?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
+    public async Task<CapturedImage?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         if (windowHandle == IntPtr.Zero)
@@ -49,12 +46,12 @@ public sealed class GraphicsCaptureService : IDisposable
         }
 
         _loggingService.LogTrace($"Created graphics capture item for window handle 0x{windowHandle.ToInt64():X} with size {item.Size.Width}x{item.Size.Height}.");
-        BitmapSource? capture = await CaptureItemAsync(item, cancellationToken);
-        _loggingService.LogDebug($"Window capture for handle 0x{windowHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.PixelWidth}x{capture.PixelHeight}")} in {captureTimer.ElapsedMilliseconds} ms.");
+        CapturedImage? capture = await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogDebug($"Window capture for handle 0x{windowHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.Width}x{capture.Height}")} in {captureTimer.ElapsedMilliseconds} ms.");
         return capture;
     }
 
-    public async Task<BitmapSource?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
+    public async Task<CapturedImage?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         if (monitorHandle == IntPtr.Zero)
@@ -77,12 +74,12 @@ public sealed class GraphicsCaptureService : IDisposable
         }
 
         _loggingService.LogTrace($"Created graphics capture item for monitor handle 0x{monitorHandle.ToInt64():X} with size {item.Size.Width}x{item.Size.Height}.");
-        BitmapSource? capture = await CaptureItemAsync(item, cancellationToken);
-        _loggingService.LogDebug($"Monitor capture for handle 0x{monitorHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.PixelWidth}x{capture.PixelHeight}")} in {captureTimer.ElapsedMilliseconds} ms.");
+        CapturedImage? capture = await CaptureItemAsync(item, cancellationToken);
+        _loggingService.LogDebug($"Monitor capture for handle 0x{monitorHandle.ToInt64():X} {(capture == null ? "did not produce an image" : $"produced {capture.Width}x{capture.Height}")} in {captureTimer.ElapsedMilliseconds} ms.");
         return capture;
     }
 
-    public async Task<BitmapSource?> CaptureDesktopAsync(CancellationToken cancellationToken)
+    public async Task<CapturedImage?> CaptureDesktopAsync(CancellationToken cancellationToken)
     {
         IntPtr desktopWindow = GetDesktopWindow();
         if (desktopWindow == IntPtr.Zero)
@@ -94,7 +91,7 @@ public sealed class GraphicsCaptureService : IDisposable
         return await CaptureWindowAsync(desktopWindow, cancellationToken);
     }
 
-    private async Task<BitmapSource?> CaptureItemAsync(GraphicsCaptureItem item, CancellationToken cancellationToken)
+    private async Task<CapturedImage?> CaptureItemAsync(GraphicsCaptureItem item, CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         _loggingService.LogTrace($"Creating frame pool and capture session for a {item.Size.Width}x{item.Size.Height} item.");
@@ -136,7 +133,7 @@ public sealed class GraphicsCaptureService : IDisposable
             using var cancellationRegistration = linkedCts.Token.Register(() => tcs.TrySetCanceled(linkedCts.Token));
 
             using var frame = await tcs.Task;
-            BitmapSource? bitmap = await ConvertFrameToBitmapSourceAsync(frame);
+            CapturedImage? bitmap = await ConvertFrameToCapturedImageAsync(frame);
             _loggingService.LogTrace($"Graphics capture frame processing completed in {captureTimer.ElapsedMilliseconds} ms.");
             return bitmap;
         }
@@ -156,7 +153,7 @@ public sealed class GraphicsCaptureService : IDisposable
         }
     }
 
-    private async Task<BitmapSource?> ConvertFrameToBitmapSourceAsync(Direct3D11CaptureFrame frame)
+    private async Task<CapturedImage?> ConvertFrameToCapturedImageAsync(Direct3D11CaptureFrame frame)
     {
         var conversionTimer = Stopwatch.StartNew();
         SoftwareBitmap? softwareBitmap = null;
@@ -166,7 +163,10 @@ public sealed class GraphicsCaptureService : IDisposable
         {
             softwareBitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Surface);
             _loggingService.LogTrace($"Copied capture surface to a software bitmap in {conversionTimer.ElapsedMilliseconds} ms.");
-            normalizedBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            // Use Ignore (not Premultiplied): Windows.Graphics.Capture often reports alpha = 0 for
+            // opaque desktop content, and premultiplying by that zero alpha would blacken every
+            // pixel. Ignore leaves the RGB channels untouched; the PNG encoder writes opaque RGB.
+            normalizedBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore);
 
             int width = normalizedBitmap.PixelWidth;
             int height = normalizedBitmap.PixelHeight;
@@ -180,10 +180,8 @@ public sealed class GraphicsCaptureService : IDisposable
             byte[] pixels = new byte[stride * height];
             normalizedBitmap.CopyToBuffer(pixels.AsBuffer());
 
-            var bitmapSource = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-            bitmapSource.Freeze();
-            _loggingService.LogDebug($"Converted graphics capture frame to {width}x{height} BGRA bitmap in {conversionTimer.ElapsedMilliseconds} ms ({pixels.Length:N0} bytes).");
-            return bitmapSource;
+            _loggingService.LogDebug($"Converted graphics capture frame to {width}x{height} BGRA buffer in {conversionTimer.ElapsedMilliseconds} ms ({pixels.Length:N0} bytes).");
+            return new CapturedImage(width, height, stride, pixels);
         }
         finally
         {
