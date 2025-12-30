@@ -15,6 +15,7 @@ public sealed class ScreenshotCaptureService : IDisposable
     private readonly UserActivityService _userActivityService;
     private readonly WindowWatcherService _windowWatcherService;
     private readonly GraphicsCaptureService _graphicsCaptureService;
+    private readonly LoggingService _loggingService;
     private readonly object _sync = new();
 
     private CancellationTokenSource? _cancellationTokenSource;
@@ -28,12 +29,14 @@ public sealed class ScreenshotCaptureService : IDisposable
         SettingsService settingsService,
         UserActivityService userActivityService,
         WindowWatcherService windowWatcherService,
-        GraphicsCaptureService graphicsCaptureService)
+        GraphicsCaptureService graphicsCaptureService,
+        LoggingService loggingService)
     {
         _settingsService = settingsService;
         _userActivityService = userActivityService;
         _windowWatcherService = windowWatcherService;
         _graphicsCaptureService = graphicsCaptureService;
+        _loggingService = loggingService;
         _lastWindowChangedEvent = _windowWatcherService.LastWindowChanged;
 
         _windowWatcherService.WindowChanged += WindowWatcherServiceOnWindowChanged;
@@ -153,9 +156,9 @@ public sealed class ScreenshotCaptureService : IDisposable
                     _windowChangedSinceLastCapture = false;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Keep running if capture fails.
+                _loggingService.LogError("Screenshot capture failed.", ex);
             }
         }
     }
@@ -185,6 +188,11 @@ public sealed class ScreenshotCaptureService : IDisposable
         BitmapSource? bitmap = await CaptureScreenshotAsync(settings.ScreenshotCaptureTarget, cancellationToken);
         if (bitmap == null)
         {
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                _loggingService.LogWarning($"Screenshot capture returned no image for target '{settings.ScreenshotCaptureTarget}'.");
+            }
+
             return;
         }
 
@@ -223,6 +231,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         var screens = Screen.AllScreens;
         if (screens.Length == 0)
         {
+            _loggingService.LogWarning("Screenshot capture could not find any connected screens.");
             return null;
         }
 
@@ -244,6 +253,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (captures.Count == 0)
         {
+            _loggingService.LogWarning("Screenshot capture did not receive an image from any connected screen.");
             return null;
         }
 
@@ -275,6 +285,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         var screens = Screen.AllScreens;
         if (screenIndex < 0 || screenIndex >= screens.Length)
         {
+            _loggingService.LogWarning($"Screenshot capture requested invalid screen index {screenIndex}; {screens.Length} screen(s) are available.");
             return null;
         }
 
@@ -292,6 +303,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
         if (windowChanged == null || windowChanged.WindowHandle == IntPtr.Zero)
         {
+            _loggingService.LogWarning("Screenshot capture requested the active application, but no active window is available.");
             return null;
         }
 

@@ -10,6 +10,7 @@ public class WindowWatcherService : IDisposable
     private readonly SettingsService _settingsService;
     private readonly ViewEventsViewModel _viewEventsViewModel;
     private readonly UserActivityService _userActivityService;
+    private readonly LoggingService _loggingService;
 
     private readonly ManualResetEvent _exitEvent = new(false);
     private readonly Dictionary<int, string> _processNamesCache = new();
@@ -22,12 +23,14 @@ public class WindowWatcherService : IDisposable
         CsvDataService csvDataService,
         SettingsService settingsService,
         ViewEventsViewModel viewEventsViewModel,
-        UserActivityService userActivityService)
+        UserActivityService userActivityService,
+        LoggingService loggingService)
     {
         _csvDataService = csvDataService;
         _settingsService = settingsService;
         _viewEventsViewModel = viewEventsViewModel;
         _userActivityService = userActivityService;
+        _loggingService = loggingService;
     }
 
     public DateTime LastWindowChangedUtc
@@ -149,9 +152,9 @@ public class WindowWatcherService : IDisposable
                     inactiveWritten = false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Silently continue on errors
+                _loggingService.LogError("Window watcher iteration failed.", ex);
             }
         }
 
@@ -177,8 +180,9 @@ public class WindowWatcherService : IDisposable
             _processNamesCache[pid] = appName;
             return appName;
         }
-        catch
+        catch (Exception ex)
         {
+            _loggingService.LogError($"Failed to get process name for process ID {pid}.", ex);
             return "unknown";
         }
     }

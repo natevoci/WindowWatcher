@@ -11,6 +11,7 @@ namespace WindowWatcher.Daemon.ViewModels;
 public class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly SettingsService _settingsService;
+    private readonly LoggingService _loggingService;
     private string _snapshotsPath;
     private string _dataDirectory;
     private bool _minimizeOnStartup;
@@ -20,9 +21,10 @@ public class SettingsViewModel : INotifyPropertyChanged
     private string _screenshotCaptureTarget;
     private int _screenshotRetentionDays;
 
-    public SettingsViewModel(SettingsService settingsService)
+    public SettingsViewModel(SettingsService settingsService, LoggingService loggingService)
     {
         _settingsService = settingsService;
+        _loggingService = loggingService;
         var settings = _settingsService.LoadSettings();
         _snapshotsPath = settings.SnapshotsPath;
         _dataDirectory = settings.DataDirectory;
@@ -176,6 +178,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            _loggingService.LogError("Failed to save settings.", ex);
             System.Windows.MessageBox.Show($"Failed to save settings: {ex.Message}", "Error",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }

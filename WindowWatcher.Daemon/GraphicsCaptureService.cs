@@ -15,22 +15,32 @@ namespace WindowWatcher.Daemon;
 public sealed class GraphicsCaptureService : IDisposable
 {
     private readonly IDirect3DDevice _direct3DDevice;
+    private readonly LoggingService _loggingService;
 
-    public GraphicsCaptureService()
+    public GraphicsCaptureService(LoggingService loggingService)
     {
+        _loggingService = loggingService;
         _direct3DDevice = CreateDirect3DDevice();
     }
 
     public async Task<BitmapSource?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
     {
-        if (windowHandle == IntPtr.Zero || !GraphicsCaptureSession.IsSupported())
+        if (windowHandle == IntPtr.Zero)
         {
+            _loggingService.LogWarning("Window capture was requested with an invalid window handle.");
+            return null;
+        }
+
+        if (!GraphicsCaptureSession.IsSupported())
+        {
+            _loggingService.LogWarning("Window capture is not supported on this version of Windows.");
             return null;
         }
 
         var item = CreateItemForWindow(windowHandle);
         if (item == null)
         {
+            _loggingService.LogWarning("Window capture item could not be created.");
             return null;
         }
 
@@ -39,14 +49,22 @@ public sealed class GraphicsCaptureService : IDisposable
 
     public async Task<BitmapSource?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
     {
-        if (monitorHandle == IntPtr.Zero || !GraphicsCaptureSession.IsSupported())
+        if (monitorHandle == IntPtr.Zero)
         {
+            _loggingService.LogWarning("Monitor capture was requested with an invalid monitor handle.");
+            return null;
+        }
+
+        if (!GraphicsCaptureSession.IsSupported())
+        {
+            _loggingService.LogWarning("Monitor capture is not supported on this version of Windows.");
             return null;
         }
 
         var item = CreateItemForMonitor(monitorHandle);
         if (item == null)
         {
+            _loggingService.LogWarning("Monitor capture item could not be created.");
             return null;
         }
 
@@ -93,8 +111,13 @@ public sealed class GraphicsCaptureService : IDisposable
             using var frame = await tcs.Task;
             return await ConvertFrameToBitmapSourceAsync(frame);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
         catch (OperationCanceledException)
         {
+            _loggingService.LogWarning("Graphics capture timed out while waiting for a frame.");
             return null;
         }
         finally
@@ -103,7 +126,7 @@ public sealed class GraphicsCaptureService : IDisposable
         }
     }
 
-    private static async Task<BitmapSource?> ConvertFrameToBitmapSourceAsync(Direct3D11CaptureFrame frame)
+    private async Task<BitmapSource?> ConvertFrameToBitmapSourceAsync(Direct3D11CaptureFrame frame)
     {
         SoftwareBitmap? softwareBitmap = null;
         SoftwareBitmap? normalizedBitmap = null;
@@ -117,6 +140,7 @@ public sealed class GraphicsCaptureService : IDisposable
             int height = normalizedBitmap.PixelHeight;
             if (width <= 0 || height <= 0)
             {
+                _loggingService.LogWarning($"Graphics capture returned an invalid frame size of {width}x{height}.");
                 return null;
             }
 
@@ -135,20 +159,37 @@ public sealed class GraphicsCaptureService : IDisposable
         }
     }
 
-    private static GraphicsCaptureItem? CreateItemForWindow(IntPtr windowHandle)
+    private GraphicsCaptureItem? CreateItemForWindow(IntPtr windowHandle)
     {
         var interop = GetCaptureItemInterop();
-        Guid iid = typeof(GraphicsCaptureItem).GUID;
+        Guid iid = IID_IGraphicsCaptureItem;
 
-        IntPtr itemPointer = interop.CreateForWindow(windowHandle, iid);
+        int hr = interop.CreateForWindow(windowHandle, ref iid, out IntPtr itemPointer);
+        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED)
+        {
+            _loggingService.LogWarning($"Windows could not create a capture item for the active window (HRESULT 0x{hr:X8}).");
+            return null;
+        }
+        if (hr < 0)
+        {
+            Marshal.ThrowExceptionForHR(hr);
+        }
+
         if (itemPointer == IntPtr.Zero)
         {
+            _loggingService.LogWarning("Windows returned an empty capture item for the active window.");
             return null;
         }
 
         try
         {
-            return Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
+            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
+            if (item == null)
+            {
+                _loggingService.LogWarning("Windows returned an invalid capture item for the active window.");
+            }
+
+            return item;
         }
         finally
         {
@@ -156,20 +197,37 @@ public sealed class GraphicsCaptureService : IDisposable
         }
     }
 
-    private static GraphicsCaptureItem? CreateItemForMonitor(IntPtr monitorHandle)
+    private GraphicsCaptureItem? CreateItemForMonitor(IntPtr monitorHandle)
     {
         var interop = GetCaptureItemInterop();
-        Guid iid = typeof(GraphicsCaptureItem).GUID;
+        Guid iid = IID_IGraphicsCaptureItem;
 
-        IntPtr itemPointer = interop.CreateForMonitor(monitorHandle, iid);
+        int hr = interop.CreateForMonitor(monitorHandle, ref iid, out IntPtr itemPointer);
+        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED)
+        {
+            _loggingService.LogWarning($"Windows could not create a capture item for the monitor (HRESULT 0x{hr:X8}).");
+            return null;
+        }
+        if (hr < 0)
+        {
+            Marshal.ThrowExceptionForHR(hr);
+        }
+
         if (itemPointer == IntPtr.Zero)
         {
+            _loggingService.LogWarning("Windows returned an empty capture item for the monitor.");
             return null;
         }
 
         try
         {
-            return Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
+            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
+            if (item == null)
+            {
+                _loggingService.LogWarning("Windows returned an invalid capture item for the monitor.");
+            }
+
+            return item;
         }
         finally
         {
@@ -306,16 +364,23 @@ public sealed class GraphicsCaptureService : IDisposable
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IGraphicsCaptureItemInterop
     {
-        IntPtr CreateForWindow(IntPtr window, [In] Guid riid);
-        IntPtr CreateForMonitor(IntPtr monitor, [In] Guid riid);
+        [PreserveSig]
+        int CreateForWindow(IntPtr window, [In] ref Guid riid, out IntPtr result);
+
+        [PreserveSig]
+        int CreateForMonitor(IntPtr monitor, [In] ref Guid riid, out IntPtr result);
     }
 
     private const int D3D_DRIVER_TYPE_HARDWARE = 1;
     private const int D3D_DRIVER_TYPE_WARP = 5;
     private const uint D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
     private const uint D3D11_SDK_VERSION = 7;
+    private const int E_NOINTERFACE = unchecked((int)0x80004002);
+    private const int E_NOTIMPL = unchecked((int)0x80004001);
+    private const int E_ACCESSDENIED = unchecked((int)0x80070005);
 
     private static readonly Guid IID_IDXGIDevice = new("54EC77FA-1377-44E6-8C32-88FD5F44C84C");
+    private static readonly Guid IID_IGraphicsCaptureItem = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
     [DllImport("d3d11.dll", SetLastError = true)]
     private static extern int D3D11CreateDevice(

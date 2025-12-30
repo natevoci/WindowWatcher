@@ -7,14 +7,16 @@ namespace WindowWatcher.Daemon;
 public sealed class DataCleanupService : IDisposable
 {
     private readonly SettingsService _settingsService;
+    private readonly LoggingService _loggingService;
     private readonly object _sync = new();
 
     private CancellationTokenSource? _cts;
     private Task? _cleanupTask;
 
-    public DataCleanupService(SettingsService settingsService)
+    public DataCleanupService(SettingsService settingsService, LoggingService loggingService)
     {
         _settingsService = settingsService;
+        _loggingService = loggingService;
     }
 
     public void Start()
@@ -76,9 +78,9 @@ public sealed class DataCleanupService : IDisposable
             {
                 RunCleanup();
             }
-            catch
+            catch (Exception ex)
             {
-                // Keep cleanup best-effort.
+                _loggingService.LogError("Data cleanup failed.", ex);
             }
 
             try
@@ -97,9 +99,10 @@ public sealed class DataCleanupService : IDisposable
         var settings = _settingsService.LoadSettings();
         CleanupScreenshots(settings.SnapshotsPath, settings.ScreenshotRetentionDays);
         CleanupActivityLogs(settings.DataDirectory, settings.LogRetentionDays);
+        CleanupLogFiles(_loggingService.LogDirectory, settings.LogRetentionDays);
     }
 
-    private static void CleanupScreenshots(string snapshotsPath, int retentionDays)
+    private void CleanupScreenshots(string snapshotsPath, int retentionDays)
     {
         if (!Directory.Exists(snapshotsPath))
         {
@@ -122,7 +125,7 @@ public sealed class DataCleanupService : IDisposable
         }
     }
 
-    private static void CleanupActivityLogs(string dataDirectory, int retentionDays)
+    private void CleanupActivityLogs(string dataDirectory, int retentionDays)
     {
         if (!Directory.Exists(dataDirectory))
         {
@@ -149,27 +152,54 @@ public sealed class DataCleanupService : IDisposable
         }
     }
 
-    private static void TryDeleteDirectory(string path)
+    private void CleanupLogFiles(string logDirectory, int retentionDays)
+    {
+        if (!Directory.Exists(logDirectory))
+        {
+            return;
+        }
+
+        DateTime cutoffDate = DateTime.Today.AddDays(-Math.Max(1, retentionDays));
+        foreach (string filePath in Directory.GetFiles(logDirectory, "windowwatcher-*.log"))
+        {
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            string datePart = fileName.StartsWith("windowwatcher-", StringComparison.OrdinalIgnoreCase)
+                ? fileName["windowwatcher-".Length..]
+                : string.Empty;
+
+            if (!DateTime.TryParseExact(datePart, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fileDate))
+            {
+                continue;
+            }
+
+            if (fileDate < cutoffDate)
+            {
+                TryDeleteFile(filePath);
+            }
+        }
+    }
+
+    private void TryDeleteDirectory(string path)
     {
         try
         {
             Directory.Delete(path, recursive: true);
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cleanup.
+            _loggingService.LogError($"Failed to delete directory '{path}'.", ex);
         }
     }
 
-    private static void TryDeleteFile(string path)
+    private void TryDeleteFile(string path)
     {
         try
         {
             File.Delete(path);
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cleanup.
+            _loggingService.LogError($"Failed to delete file '{path}'.", ex);
         }
     }
 

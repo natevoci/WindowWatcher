@@ -6,11 +6,11 @@ namespace WindowWatcher.Daemon;
 
 public partial class SettingsWindow : Window
 {
-    public SettingsWindow(SettingsService settingsService)
+    public SettingsWindow(SettingsService settingsService, LoggingService loggingService)
     {
         InitializeComponent();
 
-        var viewModel = new SettingsViewModel(settingsService);
+        var viewModel = new SettingsViewModel(settingsService, loggingService);
         viewModel.SettingsSaved += (s, e) => DialogResult = true;
         DataContext = viewModel;
     }

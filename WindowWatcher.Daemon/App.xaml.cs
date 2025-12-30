@@ -19,13 +19,15 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        // Check for updates
-        CheckForUpdates();
-
         // Build DI container
         var services = new ServiceCollection();
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
+        var loggingService = _serviceProvider.GetRequiredService<LoggingService>();
+        loggingService.LogInformation("Daemon starting.");
+
+        // Check for updates
+        CheckForUpdates();
 
         // Perform CSV migration if needed
         var migrationUtility = _serviceProvider.GetRequiredService<CsvMigrationUtility>();
@@ -35,6 +37,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            loggingService.LogError("CSV file migration failed.", ex);
             var tempWindow = new Window
             {
                 WindowStyle = WindowStyle.None,
@@ -70,6 +73,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _serviceProvider?.GetService<LoggingService>()?.LogInformation("Daemon shutting down.");
         _serviceProvider?.GetService<DataCleanupService>()?.Stop();
         _serviceProvider?.GetService<ScreenshotCaptureService>()?.Stop();
         _serviceProvider?.GetService<WindowWatcherService>()?.Stop();
@@ -80,6 +84,7 @@ public partial class App : Application
 
     private static void ConfigureServices(ServiceCollection services)
     {
+        services.AddSingleton<LoggingService>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<CsvDataService>();
         services.AddSingleton<CsvMigrationUtility>();
@@ -131,9 +136,9 @@ public partial class App : Application
                 updateManager.ApplyUpdatesAndRestart(updateInfo);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently ignore update failures
+            _serviceProvider?.GetService<LoggingService>()?.LogError("Update check failed.", ex);
         }
     }
 }

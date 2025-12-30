@@ -8,6 +8,7 @@ public partial class MainWindow : Window
     private readonly ViewEventsViewModel _viewEventsViewModel;
     private readonly SettingsService _settingsService;
     private readonly ScreenshotCaptureService _screenshotCaptureService;
+    private readonly LoggingService _loggingService;
     private ViewEventsWindow? _viewEventsWindow;
     private WindowWatcher.Analyser.MainWindow? _analyserWindow;
     private WindowWatcher.ScreenshotViewer.ScreenshotViewerWindow? _screenshotViewerWindow;
@@ -15,13 +16,15 @@ public partial class MainWindow : Window
     public MainWindow(
         ViewEventsViewModel viewEventsViewModel,
         SettingsService settingsService,
-        ScreenshotCaptureService screenshotCaptureService)
+        ScreenshotCaptureService screenshotCaptureService,
+        LoggingService loggingService)
     {
         InitializeComponent();
 
         _viewEventsViewModel = viewEventsViewModel;
         _settingsService = settingsService;
         _screenshotCaptureService = screenshotCaptureService;
+        _loggingService = loggingService;
     }
 
     private void ShowViewEventsWindow()
@@ -73,6 +76,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            _loggingService.LogError("Failed to open analyser window.", ex);
             ShowMessageBox($"Failed to open analyser window:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
@@ -93,6 +97,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            _loggingService.LogError("Failed to open screenshot viewer window.", ex);
             ShowMessageBox($"Failed to open screenshot viewer window:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
@@ -100,7 +105,7 @@ public partial class MainWindow : Window
 
     private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var settingsWindow = new SettingsWindow(_settingsService)
+        var settingsWindow = new SettingsWindow(_settingsService, _loggingService)
         {
             Owner = this
         };
