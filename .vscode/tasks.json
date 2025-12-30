@@ -41,7 +41,27 @@
       "type": "shell",
       "command": "vpk pack --packId WindowWatcher --packVersion 2.0.0 --packDir publish/WindowWatcher --mainExe WindowWatcher.Daemon.exe --yes --skip-updates",
       "group": "build",
-      "dependsOn": ["build: publish all"]
+      "dependsOn": [
+        "build: publish all"
+      ]
+    },
+    {
+      "label": "run: Daemon",
+      "type": "shell",
+      "command": "dotnet run --project WindowWatcher.Daemon/WindowWatcher.Daemon.csproj",
+      "problemMatcher": []
+    },
+    {
+      "label": "run: Analyser",
+      "type": "shell",
+      "command": "dotnet run --project WindowWatcher.Analyser/WindowWatcher.Analyser.csproj",
+      "problemMatcher": []
+    },
+    {
+      "label": "run: ScreenshotViewer",
+      "type": "shell",
+      "command": "dotnet run --project WindowWatcher.ScreenshotViewer/WindowWatcher.ScreenshotViewer.csproj",
+      "problemMatcher": []
     }
   ]
 }
