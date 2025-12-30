@@ -17,6 +17,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     private bool _minimizeOnStartup;
     private int _idleTimeoutSeconds;
     private int _logRetentionDays;
+    private string _logLevel;
     private int _screenshotIntervalSeconds;
     private string _screenshotCaptureTarget;
     private int _screenshotRetentionDays;
@@ -31,11 +32,21 @@ public class SettingsViewModel : INotifyPropertyChanged
         _minimizeOnStartup = settings.MinimizeOnStartup;
         _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
         _logRetentionDays = settings.LogRetentionDays;
+        _logLevel = settings.LogLevel;
         _screenshotIntervalSeconds = settings.ScreenshotIntervalSeconds;
         _screenshotCaptureTarget = settings.ScreenshotCaptureTarget;
         _screenshotRetentionDays = settings.ScreenshotRetentionDays;
 
         CaptureTargetOptions = new ObservableCollection<CaptureTargetOption>();
+        LogLevelOptions = new ObservableCollection<string>
+        {
+            "Trace",
+            "Debug",
+            "Information",
+            "Warning",
+            "Error",
+            "Critical"
+        };
         BuildCaptureTargetOptions(_screenshotCaptureTarget);
 
         SaveCommand = new RelayCommand(Save);
@@ -109,6 +120,19 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
+    public string LogLevel
+    {
+        get => _logLevel;
+        set
+        {
+            if (_logLevel != value)
+            {
+                _logLevel = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public int ScreenshotIntervalSeconds
     {
         get => _screenshotIntervalSeconds;
@@ -149,6 +173,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<CaptureTargetOption> CaptureTargetOptions { get; }
+    public ObservableCollection<string> LogLevelOptions { get; }
 
     public ICommand SaveCommand { get; }
     public ICommand BrowseSnapshotsCommand { get; }
@@ -166,6 +191,7 @@ public class SettingsViewModel : INotifyPropertyChanged
             MinimizeOnStartup = MinimizeOnStartup,
             IdleTimeoutSeconds = IdleTimeoutSeconds,
             LogRetentionDays = LogRetentionDays,
+            LogLevel = LogLevel,
             ScreenshotIntervalSeconds = ScreenshotIntervalSeconds,
             ScreenshotCaptureTarget = ScreenshotCaptureTarget,
             ScreenshotRetentionDays = ScreenshotRetentionDays

@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Settings" Height="430" Width="700"
+        Title="Settings" Height="490" Width="700"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="20">
@@ -192,6 +192,24 @@
                              VerticalContentAlignment="Center"
                              Height="32"
                              Padding="5"/>
+                </Grid>
+
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Log level" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="Write this level and more severe events to the application log file." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding LogLevelOptions}"
+                              SelectedItem="{Binding LogLevel, UpdateSourceTrigger=PropertyChanged}"
+                              Height="32"
+                              VerticalContentAlignment="Center"/>
                 </Grid>
             </StackPanel>
         </ScrollViewer>

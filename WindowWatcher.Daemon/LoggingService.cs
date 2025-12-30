@@ -1,15 +1,18 @@
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using WindowWatcher.Common.Services;
 
 namespace WindowWatcher.Daemon;
 
 public sealed class LoggingService : ILogger
 {
     private readonly object _sync = new();
+    private readonly SettingsService _settingsService;
 
-    public LoggingService()
+    public LoggingService(SettingsService settingsService)
     {
+        _settingsService = settingsService;
         LogDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WindowWatcher",
@@ -21,6 +24,16 @@ public sealed class LoggingService : ILogger
     public void LogInformation(string message)
     {
         Log(LogLevel.Information, default, message, null, static (state, _) => state);
+    }
+
+    public void LogDebug(string message)
+    {
+        Log(LogLevel.Debug, default, message, null, static (state, _) => state);
+    }
+
+    public void LogTrace(string message)
+    {
+        Log(LogLevel.Trace, default, message, null, static (state, _) => state);
     }
 
     public void LogWarning(string message)
@@ -40,7 +53,14 @@ public sealed class LoggingService : ILogger
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return logLevel != LogLevel.None;
+        if (logLevel == LogLevel.None)
+        {
+            return false;
+        }
+
+        var settings = _settingsService.LoadSettings();
+        return Enum.TryParse<LogLevel>(settings.LogLevel, true, out var minimumLogLevel)
+            && logLevel >= minimumLogLevel;
     }
 
     public void Log<TState>(

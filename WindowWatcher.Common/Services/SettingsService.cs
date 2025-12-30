@@ -70,6 +70,16 @@ public class SettingsService
         {
             settings.ScreenshotRetentionDays = 30;
         }
+
+        if (!Enum.TryParse<Microsoft.Extensions.Logging.LogLevel>(settings.LogLevel, true, out var logLevel)
+            || logLevel == Microsoft.Extensions.Logging.LogLevel.None)
+        {
+            settings.LogLevel = "Information";
+        }
+        else
+        {
+            settings.LogLevel = logLevel.ToString();
+        }
     }
 
     public void SaveSettings(AppSettings settings)
