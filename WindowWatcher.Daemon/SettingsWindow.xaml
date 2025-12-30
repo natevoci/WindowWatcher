@@ -58,6 +58,70 @@
                 </Grid>
 
                 <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Screenshot interval (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="Capture cadence while the service is running." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBox Grid.Column="1"
+                             Text="{Binding ScreenshotIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Screens to capture" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="Choose all screens, the active app, or a specific attached display." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding CaptureTargetOptions}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding ScreenshotCaptureTarget, UpdateSourceTrigger=PropertyChanged}"
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              Margin="0,0,10,0"/>
+
+                    <Button Grid.Column="2"
+                            Content="Refresh"
+                            Command="{Binding RefreshCaptureTargetsCommand}"
+                            Width="80"
+                            Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Screenshot retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="How long screenshot date folders are kept before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBox Grid.Column="1"
+                             Text="{Binding ScreenshotRetentionDays, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>

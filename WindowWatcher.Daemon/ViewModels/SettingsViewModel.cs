@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Forms;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
@@ -14,6 +16,9 @@ public class SettingsViewModel : INotifyPropertyChanged
     private bool _minimizeOnStartup;
     private int _idleTimeoutSeconds;
     private int _logRetentionDays;
+    private int _screenshotIntervalSeconds;
+    private string _screenshotCaptureTarget;
+    private int _screenshotRetentionDays;
 
     public SettingsViewModel(SettingsService settingsService)
     {
@@ -24,10 +29,17 @@ public class SettingsViewModel : INotifyPropertyChanged
         _minimizeOnStartup = settings.MinimizeOnStartup;
         _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
         _logRetentionDays = settings.LogRetentionDays;
+        _screenshotIntervalSeconds = settings.ScreenshotIntervalSeconds;
+        _screenshotCaptureTarget = settings.ScreenshotCaptureTarget;
+        _screenshotRetentionDays = settings.ScreenshotRetentionDays;
+
+        CaptureTargetOptions = new ObservableCollection<CaptureTargetOption>();
+        BuildCaptureTargetOptions(_screenshotCaptureTarget);
 
         SaveCommand = new RelayCommand(Save);
         BrowseSnapshotsCommand = new RelayCommand(() => BrowsePath(path => SnapshotsPath = path));
         BrowseDataDirectoryCommand = new RelayCommand(() => BrowsePath(path => DataDirectory = path));
+        RefreshCaptureTargetsCommand = new RelayCommand(() => BuildCaptureTargetOptions(ScreenshotCaptureTarget));
     }
 
     public string SnapshotsPath
@@ -95,9 +107,51 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
+    public int ScreenshotIntervalSeconds
+    {
+        get => _screenshotIntervalSeconds;
+        set
+        {
+            if (_screenshotIntervalSeconds != value)
+            {
+                _screenshotIntervalSeconds = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string ScreenshotCaptureTarget
+    {
+        get => _screenshotCaptureTarget;
+        set
+        {
+            if (_screenshotCaptureTarget != value)
+            {
+                _screenshotCaptureTarget = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int ScreenshotRetentionDays
+    {
+        get => _screenshotRetentionDays;
+        set
+        {
+            if (_screenshotRetentionDays != value)
+            {
+                _screenshotRetentionDays = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public ObservableCollection<CaptureTargetOption> CaptureTargetOptions { get; }
+
     public ICommand SaveCommand { get; }
     public ICommand BrowseSnapshotsCommand { get; }
     public ICommand BrowseDataDirectoryCommand { get; }
+    public ICommand RefreshCaptureTargetsCommand { get; }
 
     public event EventHandler? SettingsSaved;
 
@@ -109,7 +163,10 @@ public class SettingsViewModel : INotifyPropertyChanged
             DataDirectory = DataDirectory,
             MinimizeOnStartup = MinimizeOnStartup,
             IdleTimeoutSeconds = IdleTimeoutSeconds,
-            LogRetentionDays = LogRetentionDays
+            LogRetentionDays = LogRetentionDays,
+            ScreenshotIntervalSeconds = ScreenshotIntervalSeconds,
+            ScreenshotCaptureTarget = ScreenshotCaptureTarget,
+            ScreenshotRetentionDays = ScreenshotRetentionDays
         };
 
         try
@@ -122,6 +179,27 @@ public class SettingsViewModel : INotifyPropertyChanged
             System.Windows.MessageBox.Show($"Failed to save settings: {ex.Message}", "Error",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+    }
+
+    private void BuildCaptureTargetOptions(string? preferredTarget)
+    {
+        CaptureTargetOptions.Clear();
+        CaptureTargetOptions.Add(new CaptureTargetOption("All screens", "AllScreens"));
+        CaptureTargetOptions.Add(new CaptureTargetOption("Active application", "ActiveApplication"));
+
+        var screens = Screen.AllScreens;
+        for (int i = 0; i < screens.Length; i++)
+        {
+            var screen = screens[i];
+            string label = $"Screen {i + 1} - {screen.DeviceName} ({screen.Bounds.Width}x{screen.Bounds.Height})";
+            string value = $"Screen:{i}";
+            CaptureTargetOptions.Add(new CaptureTargetOption(label, value));
+        }
+
+        bool preferredExists = CaptureTargetOptions.Any(option =>
+            string.Equals(option.Value, preferredTarget, StringComparison.OrdinalIgnoreCase));
+
+        ScreenshotCaptureTarget = preferredExists ? preferredTarget! : "AllScreens";
     }
 
     private void BrowsePath(Action<string> setPath)
@@ -151,6 +229,18 @@ public class SettingsViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+}
+
+public sealed class CaptureTargetOption
+{
+    public CaptureTargetOption(string displayName, string value)
+    {
+        DisplayName = displayName;
+        Value = value;
+    }
+
+    public string DisplayName { get; }
+    public string Value { get; }
 }
 
 public class RelayCommand : ICommand

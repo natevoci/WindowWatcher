@@ -74,24 +74,33 @@ public class SnapshotService
 
     private bool TryParseTimestamp(string fileName, out TimeSpan timeOfDay)
     {
-        // Expected format: HH.MM.SS.MS (e.g., "19.07.00.70")
+        // Expected format: HH.MM.SS.XX or HH.MM.SS.XXXX
         var parts = fileName.Split('.');
         
         if (parts.Length == 4 &&
             int.TryParse(parts[0], out var hours) &&
             int.TryParse(parts[1], out var minutes) &&
-            int.TryParse(parts[2], out var seconds) &&
-            int.TryParse(parts[3], out var milliseconds))
+            int.TryParse(parts[2], out var seconds))
         {
             try
             {
-                timeOfDay = new TimeSpan(0, hours, minutes, seconds, milliseconds * 10);
-                return true;
+                var baseTime = new TimeSpan(hours, minutes, seconds);
+
+                if (parts[3].Length == 2 && int.TryParse(parts[3], out var centiseconds))
+                {
+                    timeOfDay = baseTime + TimeSpan.FromMilliseconds(centiseconds * 10);
+                    return true;
+                }
+
+                if (parts[3].Length == 4 && int.TryParse(parts[3], out var fractionalSeconds))
+                {
+                    timeOfDay = baseTime + TimeSpan.FromTicks(fractionalSeconds * 1000L);
+                    return true;
+                }
             }
             catch
             {
-                timeOfDay = TimeSpan.Zero;
-                return false;
+                // Fall through to false return below.
             }
         }
         

@@ -55,6 +55,21 @@ public class SettingsService
         {
             settings.DataDirectory = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.DataDirectory));
         }
+
+        if (settings.ScreenshotIntervalSeconds <= 0)
+        {
+            settings.ScreenshotIntervalSeconds = 5;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.ScreenshotCaptureTarget))
+        {
+            settings.ScreenshotCaptureTarget = "AllScreens";
+        }
+
+        if (settings.ScreenshotRetentionDays <= 0)
+        {
+            settings.ScreenshotRetentionDays = 30;
+        }
     }
 
     public void SaveSettings(AppSettings settings)

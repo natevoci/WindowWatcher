@@ -9,14 +9,19 @@ public partial class MainWindow : Window
 {
     private readonly ViewEventsViewModel _viewEventsViewModel;
     private readonly SettingsService _settingsService;
+    private readonly ScreenshotCaptureService _screenshotCaptureService;
     private ViewEventsWindow? _viewEventsWindow;
 
-    public MainWindow(ViewEventsViewModel viewEventsViewModel, SettingsService settingsService)
+    public MainWindow(
+        ViewEventsViewModel viewEventsViewModel,
+        SettingsService settingsService,
+        ScreenshotCaptureService screenshotCaptureService)
     {
         InitializeComponent();
 
         _viewEventsViewModel = viewEventsViewModel;
         _settingsService = settingsService;
+        _screenshotCaptureService = screenshotCaptureService;
     }
 
     private void ShowViewEventsWindow()
@@ -112,6 +117,15 @@ public partial class MainWindow : Window
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
     {
         Application.Current.Shutdown();
+    }
+
+    private void CaptureToggleMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        bool isCapturing = _screenshotCaptureService.ToggleCapturing();
+        if (sender is System.Windows.Controls.MenuItem menuItem)
+        {
+            menuItem.Header = isCapturing ? "Stop Capture" : "Start Capture";
+        }
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

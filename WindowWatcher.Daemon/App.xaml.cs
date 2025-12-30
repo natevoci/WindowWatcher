@@ -55,6 +55,10 @@ public partial class App : Application
         var windowWatcherService = _serviceProvider.GetRequiredService<WindowWatcherService>();
         windowWatcherService.Start();
 
+        // Start screenshot capture service
+        var screenshotCaptureService = _serviceProvider.GetRequiredService<ScreenshotCaptureService>();
+        screenshotCaptureService.Start();
+
         // Show main window
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
@@ -62,7 +66,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _serviceProvider?.GetService<ScreenshotCaptureService>()?.Stop();
         _serviceProvider?.GetService<WindowWatcherService>()?.Stop();
+        _serviceProvider?.GetService<UserActivityService>()?.Stop();
         _serviceProvider?.Dispose();
         base.OnExit(e);
     }
@@ -73,7 +79,9 @@ public partial class App : Application
         services.AddSingleton<CsvDataService>();
         services.AddSingleton<CsvMigrationUtility>();
         services.AddSingleton<ViewEventsViewModel>();
+        services.AddSingleton<UserActivityService>();
         services.AddSingleton<WindowWatcherService>();
+        services.AddSingleton<ScreenshotCaptureService>();
         services.AddTransient<MainWindow>();
     }
 

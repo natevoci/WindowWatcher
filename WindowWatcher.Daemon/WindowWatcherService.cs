@@ -9,28 +9,42 @@ public class WindowWatcherService : IDisposable
     private readonly CsvDataService _csvDataService;
     private readonly SettingsService _settingsService;
     private readonly ViewEventsViewModel _viewEventsViewModel;
+    private readonly UserActivityService _userActivityService;
 
-    private UserActivityHook? _activityHook;
-    private DateTime _lastActivity = DateTime.MinValue;
     private readonly ManualResetEvent _exitEvent = new(false);
     private readonly Dictionary<int, string> _processNamesCache = new();
+    private readonly object _windowChangedSync = new();
     private Thread? _wwThread;
+    private DateTime _lastWindowChangedUtc = DateTime.MinValue;
 
     public WindowWatcherService(
         CsvDataService csvDataService,
         SettingsService settingsService,
-        ViewEventsViewModel viewEventsViewModel)
+        ViewEventsViewModel viewEventsViewModel,
+        UserActivityService userActivityService)
     {
         _csvDataService = csvDataService;
         _settingsService = settingsService;
         _viewEventsViewModel = viewEventsViewModel;
+        _userActivityService = userActivityService;
     }
+
+    public DateTime LastWindowChangedUtc
+    {
+        get
+        {
+            lock (_windowChangedSync)
+            {
+                return _lastWindowChangedUtc;
+            }
+        }
+    }
+
+    public event EventHandler<DateTime>? WindowChanged;
 
     public void Start()
     {
-        _activityHook = new UserActivityHook(true, true);
-        _activityHook.KeyPress += ActivityHook_KeyPress;
-        _activityHook.OnMouseActivity += ActivityHook_OnMouseActivity;
+        _userActivityService.Start();
 
         _wwThread = new Thread(WindowWatcherProc)
         {
@@ -42,7 +56,6 @@ public class WindowWatcherService : IDisposable
 
     public void Stop()
     {
-        _activityHook?.Stop();
         _exitEvent.Set();
         _wwThread?.Join();
     }
@@ -53,23 +66,12 @@ public class WindowWatcherService : IDisposable
         _exitEvent.Dispose();
     }
 
-    private void ActivityHook_KeyPress(object? sender, System.Windows.Forms.KeyPressEventArgs e)
-    {
-        _lastActivity = DateTime.UtcNow;
-    }
-
-    private void ActivityHook_OnMouseActivity(object? sender, System.Windows.Forms.MouseEventArgs e)
-    {
-        _lastActivity = DateTime.UtcNow;
-    }
-
     private void WindowWatcherProc()
     {
         int lastAppPid = -1;
         string lastAppName = string.Empty;
         string lastAppTitle = string.Empty;
         DateTime lastAppActivated = DateTime.MinValue;
-        _lastActivity = DateTime.UtcNow;
         bool inactiveWritten = false;
 
         var settings = _settingsService.LoadSettings();
@@ -78,7 +80,7 @@ public class WindowWatcherService : IDisposable
         {
             try
             {
-                var elapsed = DateTime.UtcNow - _lastActivity;
+                var elapsed = DateTime.UtcNow - _userActivityService.LastActivityUtc;
                 int idleTimeout = settings.IdleTimeoutSeconds;
 
                 if (elapsed.TotalSeconds > idleTimeout && !inactiveWritten)
@@ -92,7 +94,6 @@ public class WindowWatcherService : IDisposable
                     _viewEventsViewModel.AddActivity(evt);
 
                     inactiveWritten = true;
-                    _lastActivity = DateTime.UtcNow;
                 }
 
                 IntPtr hwnd = GetHwnd();
@@ -117,8 +118,14 @@ public class WindowWatcherService : IDisposable
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
                     _viewEventsViewModel.AddActivity(evt);
 
+                    var changedUtc = DateTime.UtcNow;
+                    lock (_windowChangedSync)
+                    {
+                        _lastWindowChangedUtc = changedUtc;
+                    }
+                    WindowChanged?.Invoke(this, changedUtc);
+
                     inactiveWritten = false;
-                    _lastActivity = DateTime.UtcNow;
                 }
             }
             catch (Exception)
