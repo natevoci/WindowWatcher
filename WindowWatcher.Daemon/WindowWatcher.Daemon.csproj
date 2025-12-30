@@ -20,7 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WindowWatcher.Analyser\WindowWatcher.Analyser.csproj" />
     <ProjectReference Include="..\WindowWatcher.Common\WindowWatcher.Common.csproj" />
+    <ProjectReference Include="..\WindowWatcher.ScreenshotViewer\WindowWatcher.ScreenshotViewer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

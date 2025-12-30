@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using WindowWatcher.Common.Services;
 
@@ -11,6 +9,8 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService;
     private readonly ScreenshotCaptureService _screenshotCaptureService;
     private ViewEventsWindow? _viewEventsWindow;
+    private WindowWatcher.Analyser.MainWindow? _analyserWindow;
+    private WindowWatcher.ScreenshotViewer.ScreenshotViewerWindow? _screenshotViewerWindow;
 
     public MainWindow(
         ViewEventsViewModel viewEventsViewModel,
@@ -50,56 +50,50 @@ public partial class MainWindow : Window
 
     private void ViewAnalyserMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            string currPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty) ?? string.Empty;
-            string analyserPath = Path.Combine(currPath, "WindowWatcher.Analyser.exe");
-
-            if (File.Exists(analyserPath))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = analyserPath,
-                    UseShellExecute = true
-                });
-            }
-            else
-            {
-                ShowMessageBox($"WindowWatcher.Analyser.exe not found at:\n{analyserPath}",
-                    "Application Not Found", MessageBoxImage.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowMessageBox($"Failed to launch WindowWatcher.Analyser:\n{ex.Message}",
-                "Launch Error", MessageBoxImage.Error);
-        }
+        ShowAnalyserWindow();
     }
 
     private void ViewScreenshotsMenuItem_Click(object sender, RoutedEventArgs e)
     {
+        ShowScreenshotViewerWindow();
+    }
+
+    private void ShowAnalyserWindow()
+    {
         try
         {
-            string currPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty) ?? string.Empty;
-            string screenshotViewerPath = Path.Combine(currPath, "WindowWatcher.ScreenshotViewer.exe");
+            if (_analyserWindow == null || !_analyserWindow.IsLoaded)
+            {
+                _analyserWindow = new WindowWatcher.Analyser.MainWindow();
+                _analyserWindow.Closed += (s, e) => _analyserWindow = null;
+            }
 
-            if (File.Exists(screenshotViewerPath))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = screenshotViewerPath,
-                    UseShellExecute = true
-                });
-            }
-            else
-            {
-                ShowMessageBox($"WindowWatcher.ScreenshotViewer.exe not found at:\n{screenshotViewerPath}",
-                    "Application Not Found", MessageBoxImage.Error);
-            }
+            _analyserWindow.Show();
+            _analyserWindow.Activate();
         }
         catch (Exception ex)
         {
-            ShowMessageBox($"Failed to launch WindowWatcher.ScreenshotViewer:\n{ex.Message}",
+            ShowMessageBox($"Failed to open analyser window:\n{ex.Message}",
+                "Launch Error", MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowScreenshotViewerWindow()
+    {
+        try
+        {
+            if (_screenshotViewerWindow == null || !_screenshotViewerWindow.IsLoaded)
+            {
+                _screenshotViewerWindow = new WindowWatcher.ScreenshotViewer.ScreenshotViewerWindow();
+                _screenshotViewerWindow.Closed += (s, e) => _screenshotViewerWindow = null;
+            }
+
+            _screenshotViewerWindow.Show();
+            _screenshotViewerWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            ShowMessageBox($"Failed to open screenshot viewer window:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
     }
