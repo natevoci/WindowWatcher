@@ -16,6 +16,7 @@ public class WindowWatcherService : IDisposable
     private readonly object _windowChangedSync = new();
     private Thread? _wwThread;
     private DateTime _lastWindowChangedUtc = DateTime.MinValue;
+    private WindowChangedEventArgs? _lastWindowChanged;
 
     public WindowWatcherService(
         CsvDataService csvDataService,
@@ -40,7 +41,18 @@ public class WindowWatcherService : IDisposable
         }
     }
 
-    public event EventHandler<DateTime>? WindowChanged;
+    public WindowChangedEventArgs? LastWindowChanged
+    {
+        get
+        {
+            lock (_windowChangedSync)
+            {
+                return _lastWindowChanged;
+            }
+        }
+    }
+
+    public event EventHandler<WindowChangedEventArgs>? WindowChanged;
 
     public void Start()
     {
@@ -118,12 +130,21 @@ public class WindowWatcherService : IDisposable
                     _csvDataService.WriteEvent(evt, settings.DataDirectory);
                     _viewEventsViewModel.AddActivity(evt);
 
-                    var changedUtc = DateTime.UtcNow;
+                    var changedEvent = new WindowChangedEventArgs
+                    {
+                        WindowHandle = hwnd,
+                        ProcessId = pid,
+                        ProcessName = appName,
+                        WindowTitle = appTitle,
+                        ChangedUtc = DateTime.UtcNow
+                    };
+
                     lock (_windowChangedSync)
                     {
-                        _lastWindowChangedUtc = changedUtc;
+                        _lastWindowChangedUtc = changedEvent.ChangedUtc;
+                        _lastWindowChanged = changedEvent;
                     }
-                    WindowChanged?.Invoke(this, changedUtc);
+                    WindowChanged?.Invoke(this, changedEvent);
 
                     inactiveWritten = false;
                 }

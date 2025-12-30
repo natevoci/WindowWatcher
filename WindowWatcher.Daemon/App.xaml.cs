@@ -59,6 +59,10 @@ public partial class App : Application
         var screenshotCaptureService = _serviceProvider.GetRequiredService<ScreenshotCaptureService>();
         screenshotCaptureService.Start();
 
+        // Start cleanup service
+        var dataCleanupService = _serviceProvider.GetRequiredService<DataCleanupService>();
+        dataCleanupService.Start();
+
         // Show main window
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
@@ -66,6 +70,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _serviceProvider?.GetService<DataCleanupService>()?.Stop();
         _serviceProvider?.GetService<ScreenshotCaptureService>()?.Stop();
         _serviceProvider?.GetService<WindowWatcherService>()?.Stop();
         _serviceProvider?.GetService<UserActivityService>()?.Stop();
@@ -81,7 +86,9 @@ public partial class App : Application
         services.AddSingleton<ViewEventsViewModel>();
         services.AddSingleton<UserActivityService>();
         services.AddSingleton<WindowWatcherService>();
+        services.AddSingleton<GraphicsCaptureService>();
         services.AddSingleton<ScreenshotCaptureService>();
+        services.AddSingleton<DataCleanupService>();
         services.AddTransient<MainWindow>();
     }
 

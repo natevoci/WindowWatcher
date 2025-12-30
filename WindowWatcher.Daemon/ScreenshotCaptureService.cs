@@ -1,8 +1,9 @@
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
@@ -13,23 +14,27 @@ public sealed class ScreenshotCaptureService : IDisposable
     private readonly SettingsService _settingsService;
     private readonly UserActivityService _userActivityService;
     private readonly WindowWatcherService _windowWatcherService;
+    private readonly GraphicsCaptureService _graphicsCaptureService;
     private readonly object _sync = new();
 
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _captureTask;
     private bool _isCapturing = true;
     private bool _windowChangedSinceLastCapture;
+    private WindowChangedEventArgs? _lastWindowChangedEvent;
     private DateTime _lastSavedUtc = DateTime.MinValue;
-    private DateTime _lastRetentionSweepUtc = DateTime.MinValue;
 
     public ScreenshotCaptureService(
         SettingsService settingsService,
         UserActivityService userActivityService,
-        WindowWatcherService windowWatcherService)
+        WindowWatcherService windowWatcherService,
+        GraphicsCaptureService graphicsCaptureService)
     {
         _settingsService = settingsService;
         _userActivityService = userActivityService;
         _windowWatcherService = windowWatcherService;
+        _graphicsCaptureService = graphicsCaptureService;
+        _lastWindowChangedEvent = _windowWatcherService.LastWindowChanged;
 
         _windowWatcherService.WindowChanged += WindowWatcherServiceOnWindowChanged;
     }
@@ -141,14 +146,12 @@ public sealed class ScreenshotCaptureService : IDisposable
                     continue;
                 }
 
-                SaveScreenshot(settings);
+                await SaveScreenshotAsync(settings, cancellationToken);
                 lock (_sync)
                 {
                     _lastSavedUtc = DateTime.UtcNow;
                     _windowChangedSinceLastCapture = false;
                 }
-
-                CleanupExpiredSnapshots(settings);
             }
             catch
             {
@@ -177,9 +180,9 @@ public sealed class ScreenshotCaptureService : IDisposable
         return activitySinceLastCapture || windowChanged;
     }
 
-    private void SaveScreenshot(AppSettings settings)
+    private async Task SaveScreenshotAsync(AppSettings settings, CancellationToken cancellationToken)
     {
-        using Bitmap? bitmap = CaptureScreenshot(settings.ScreenshotCaptureTarget);
+        BitmapSource? bitmap = await CaptureScreenshotAsync(settings.ScreenshotCaptureTarget, cancellationToken);
         if (bitmap == null)
         {
             return;
@@ -193,32 +196,29 @@ public sealed class ScreenshotCaptureService : IDisposable
         string filename = $"{now:HH.mm.ss.ffff}.png";
         string outputPath = Path.Combine(dayFolder, filename);
 
-        bitmap.Save(outputPath, ImageFormat.Png);
+        using var fileStream = File.Create(outputPath);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        encoder.Save(fileStream);
     }
 
-    private Bitmap? CaptureScreenshot(string captureTarget)
+    private async Task<BitmapSource?> CaptureScreenshotAsync(string captureTarget, CancellationToken cancellationToken)
     {
         if (string.Equals(captureTarget, "ActiveApplication", StringComparison.OrdinalIgnoreCase))
         {
-            return CaptureActiveApplication();
+            return await CaptureActiveApplicationAsync(cancellationToken);
         }
 
         if (captureTarget.StartsWith("Screen:", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(captureTarget["Screen:".Length..], out int screenIndex))
         {
-            var screens = Screen.AllScreens;
-            if (screenIndex >= 0 && screenIndex < screens.Length)
-            {
-                return CaptureBounds(screens[screenIndex].Bounds);
-            }
-
-            return null;
+            return await CaptureSingleScreenAsync(screenIndex, cancellationToken);
         }
 
-        return CaptureAllScreens();
+        return await CaptureAllScreensAsync(cancellationToken);
     }
 
-    private static Bitmap? CaptureAllScreens()
+    private async Task<BitmapSource?> CaptureAllScreensAsync(CancellationToken cancellationToken)
     {
         var screens = Screen.AllScreens;
         if (screens.Length == 0)
@@ -226,100 +226,90 @@ public sealed class ScreenshotCaptureService : IDisposable
             return null;
         }
 
-        Rectangle bounds = screens[0].Bounds;
-        for (int i = 1; i < screens.Length; i++)
+        if (screens.Length == 1)
         {
-            bounds = Rectangle.Union(bounds, screens[i].Bounds);
+            return await CaptureSingleScreenAsync(0, cancellationToken);
         }
 
-        return CaptureBounds(bounds);
-    }
-
-    private static Bitmap? CaptureActiveApplication()
-    {
-        IntPtr handle = WindowsApiService.GetForegroundWindowHandle();
-        if (handle == IntPtr.Zero)
+        var captures = new List<(System.Drawing.Rectangle bounds, BitmapSource bitmap)>();
+        foreach (var screen in screens)
         {
-            return null;
-        }
-
-        if (!GetWindowRect(handle, out RECT rect))
-        {
-            return null;
-        }
-
-        int width = rect.Right - rect.Left;
-        int height = rect.Bottom - rect.Top;
-        if (width <= 0 || height <= 0)
-        {
-            return null;
-        }
-
-        return CaptureBounds(new Rectangle(rect.Left, rect.Top, width, height));
-    }
-
-    private static Bitmap? CaptureBounds(Rectangle bounds)
-    {
-        if (bounds.Width <= 0 || bounds.Height <= 0)
-        {
-            return null;
-        }
-
-        var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
-        using var graphics = Graphics.FromImage(bitmap);
-        graphics.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size, CopyPixelOperation.SourceCopy);
-        return bitmap;
-    }
-
-    private void CleanupExpiredSnapshots(AppSettings settings)
-    {
-        DateTime nowUtc = DateTime.UtcNow;
-        if ((nowUtc - _lastRetentionSweepUtc) < TimeSpan.FromHours(1))
-        {
-            return;
-        }
-
-        _lastRetentionSweepUtc = nowUtc;
-
-        int retentionDays = Math.Max(1, settings.ScreenshotRetentionDays);
-        string snapshotsPath = settings.SnapshotsPath;
-        if (!Directory.Exists(snapshotsPath))
-        {
-            return;
-        }
-
-        DateTime cutoffDate = DateTime.Today.AddDays(-retentionDays);
-        foreach (string directoryPath in Directory.GetDirectories(snapshotsPath))
-        {
-            string folderName = Path.GetFileName(directoryPath);
-            if (!DateTime.TryParseExact(
-                    folderName,
-                    "yyyy-MM-dd",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None,
-                    out DateTime folderDate))
+            IntPtr monitorHandle = GetMonitorHandleForScreen(screen);
+            BitmapSource? bitmap = await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
+            if (bitmap != null)
             {
-                continue;
-            }
-
-            if (folderDate < cutoffDate)
-            {
-                try
-                {
-                    Directory.Delete(directoryPath, true);
-                }
-                catch
-                {
-                    // Keep retention cleanup best-effort.
-                }
+                captures.Add((screen.Bounds, bitmap));
             }
         }
+
+        if (captures.Count == 0)
+        {
+            return null;
+        }
+
+        var union = captures[0].bounds;
+        for (int i = 1; i < captures.Count; i++)
+        {
+            union = System.Drawing.Rectangle.Union(union, captures[i].bounds);
+        }
+
+        var drawingVisual = new DrawingVisual();
+        using (DrawingContext drawingContext = drawingVisual.RenderOpen())
+        {
+            foreach (var capture in captures)
+            {
+                double x = capture.bounds.Left - union.Left;
+                double y = capture.bounds.Top - union.Top;
+                drawingContext.DrawImage(capture.bitmap, new Rect(x, y, capture.bounds.Width, capture.bounds.Height));
+            }
+        }
+
+        var output = new RenderTargetBitmap(union.Width, union.Height, 96, 96, PixelFormats.Pbgra32);
+        output.Render(drawingVisual);
+        output.Freeze();
+        return output;
     }
 
-    private void WindowWatcherServiceOnWindowChanged(object? sender, DateTime e)
+    private async Task<BitmapSource?> CaptureSingleScreenAsync(int screenIndex, CancellationToken cancellationToken)
+    {
+        var screens = Screen.AllScreens;
+        if (screenIndex < 0 || screenIndex >= screens.Length)
+        {
+            return null;
+        }
+
+        IntPtr monitorHandle = GetMonitorHandleForScreen(screens[screenIndex]);
+        return await _graphicsCaptureService.CaptureMonitorAsync(monitorHandle, cancellationToken);
+    }
+
+    private async Task<BitmapSource?> CaptureActiveApplicationAsync(CancellationToken cancellationToken)
+    {
+        WindowChangedEventArgs? windowChanged;
+        lock (_sync)
+        {
+            windowChanged = _lastWindowChangedEvent;
+        }
+
+        if (windowChanged == null || windowChanged.WindowHandle == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        return await _graphicsCaptureService.CaptureWindowAsync(windowChanged.WindowHandle, cancellationToken);
+    }
+
+    private static IntPtr GetMonitorHandleForScreen(Screen screen)
+    {
+        int centerX = screen.Bounds.Left + (screen.Bounds.Width / 2);
+        int centerY = screen.Bounds.Top + (screen.Bounds.Height / 2);
+        return MonitorFromPoint(new POINT { X = centerX, Y = centerY }, MONITOR_DEFAULTTONEAREST);
+    }
+
+    private void WindowWatcherServiceOnWindowChanged(object? sender, WindowChangedEventArgs e)
     {
         lock (_sync)
         {
+            _lastWindowChangedEvent = e;
             _windowChangedSinceLastCapture = true;
         }
     }
@@ -330,15 +320,14 @@ public sealed class ScreenshotCaptureService : IDisposable
         Stop();
     }
 
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
 
-    private struct RECT
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT point, uint dwFlags);
+
+    private struct POINT
     {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
+        public int X;
+        public int Y;
     }
 }
