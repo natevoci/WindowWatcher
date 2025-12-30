@@ -12,19 +12,11 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Menu Bar -->
-        <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="E_xit" Click="ExitMenuItem_Click"/>
-            </MenuItem>
-        </Menu>
-
         <!-- Time Display and Date Picker -->
-        <Grid Grid.Row="1" Margin="10">
+        <Grid Grid.Row="0" Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -53,14 +45,14 @@
         
         <!-- Timeline Slider with Heat Map -->
         <controls:TimelineSlider x:Name="TimelineSlider"
-                                 Grid.Row="2"
+                                 Grid.Row="1"
                                  Margin="10,0,10,10"
                                  Height="80"
                                  Value="{Binding CurrentTimeValue, Mode=TwoWay}"
                                  Snapshots="{Binding Snapshots}"/>
         
         <!-- Image Display -->
-        <Grid Grid.Row="3" x:Name="ImageContainer" Background="Black" ClipToBounds="True">
+        <Grid Grid.Row="2" x:Name="ImageContainer" Background="Black" ClipToBounds="True">
             <ScrollViewer x:Name="MainImageScrollViewer"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Disabled"

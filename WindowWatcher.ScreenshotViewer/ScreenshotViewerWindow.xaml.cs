@@ -33,11 +33,6 @@ public partial class ScreenshotViewerWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
 
-    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
-
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(_viewModel.IsZoomed))
