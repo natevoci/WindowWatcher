@@ -57,6 +57,11 @@ public class WindowWatcherService : IDisposable
 
     public event EventHandler<WindowChangedEventArgs>? WindowChanged;
 
+    public IntPtr GetForegroundWindow()
+    {
+        return WindowsApiService.GetForegroundWindowHandle();
+    }
+
     public void Start()
     {
         _userActivityService.Start();
@@ -111,7 +116,7 @@ public class WindowWatcherService : IDisposable
                     inactiveWritten = true;
                 }
 
-                IntPtr hwnd = GetHwnd();
+                IntPtr hwnd = GetForegroundWindow();
                 int pid = GetPid(hwnd);
                 string appTitle = GetAppTitle();
                 string appName = GetProcessNameFromProcessId(pid);
@@ -197,8 +202,4 @@ public class WindowWatcherService : IDisposable
         return WindowsApiService.GetWindowProcessId(hwnd);
     }
 
-    private static IntPtr GetHwnd()
-    {
-        return WindowsApiService.GetForegroundWindowHandle();
-    }
 }

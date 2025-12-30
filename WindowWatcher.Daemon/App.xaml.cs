@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Velopack;
 using WindowWatcher.Common.Services;
@@ -26,8 +29,15 @@ public partial class App : Application
         var loggingService = _serviceProvider.GetRequiredService<LoggingService>();
         loggingService.LogInformation("Daemon starting.");
 
-        // Check for updates
-        CheckForUpdates();
+        // Check for updates only for installed production builds.
+        if (ShouldCheckForUpdates())
+        {
+            CheckForUpdates();
+        }
+        else
+        {
+            loggingService.LogInformation("Skipping update check for non-installed or dotnet-hosted execution.");
+        }
 
         // Perform CSV migration if needed
         var migrationUtility = _serviceProvider.GetRequiredService<CsvMigrationUtility>();
@@ -52,6 +62,56 @@ public partial class App : Application
             tempWindow.Show();
             MessageBox.Show(tempWindow, $"Error during CSV file migration: {ex.Message}", "Migration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             tempWindow.Close();
+        }
+
+        bool captureSingleScreenshot = e.Args.Any(arg =>
+            string.Equals(arg, "CaptureSingleScreenshot", StringComparison.OrdinalIgnoreCase));
+        if (captureSingleScreenshot)
+        {
+            string? captureTargetOverride = e.Args
+                .FirstOrDefault(arg =>
+                    !string.Equals(arg, "CaptureSingleScreenshot", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(arg));
+
+            loggingService.LogInformation("CaptureSingleScreenshot argument detected. Capturing one screenshot and exiting.");
+            if (!string.IsNullOrWhiteSpace(captureTargetOverride))
+            {
+                loggingService.LogInformation($"Using one-shot capture target override: {captureTargetOverride}");
+            }
+
+            var singleCaptureService = _serviceProvider.GetRequiredService<ScreenshotCaptureService>();
+
+            // The capture pipeline relies on WPF imaging (RenderTargetBitmap) which needs the STA
+            // UI thread with a running dispatcher. Blocking OnStartup with GetResult() would deadlock
+            // because the message pump has not started yet, so schedule the work on the dispatcher and
+            // return, then shut down once the asynchronous capture finishes.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                bool captured;
+                try
+                {
+                    captured = await singleCaptureService.CaptureSingleScreenshotAsync(captureTargetOverride);
+                }
+                catch (Exception ex)
+                {
+                    loggingService.LogError("Single screenshot capture failed.", ex);
+                    captured = false;
+                }
+
+                if (captured)
+                {
+                    loggingService.LogInformation("Single screenshot capture completed.");
+                }
+                else
+                {
+                    loggingService.LogWarning("Single screenshot capture did not produce an image.");
+                }
+
+                Shutdown(captured ? 0 : 1);
+            });
+
+            return;
         }
 
         // Start window watcher service
@@ -136,9 +196,39 @@ public partial class App : Application
                 updateManager.ApplyUpdatesAndRestart(updateInfo);
             }
         }
+        catch (Velopack.Exceptions.NotInstalledException ex)
+        {
+            _serviceProvider?.GetService<LoggingService>()?.LogInformation($"Skipping update check because the app is not installed: {ex.Message}");
+        }
         catch (Exception ex)
         {
             _serviceProvider?.GetService<LoggingService>()?.LogError("Update check failed.", ex);
         }
+    }
+
+    private static bool ShouldCheckForUpdates()
+    {
+        string baseDir = AppContext.BaseDirectory;
+        string updateExePath = Path.Combine(baseDir, "Update.exe");
+        if (!File.Exists(updateExePath))
+        {
+            return false;
+        }
+
+        string? processPath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(processPath)
+            && string.Equals(Path.GetFileName(processPath), "dotnet.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string moduleFileName = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(moduleFileName)
+            && string.Equals(Path.GetFileName(moduleFileName), "dotnet.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

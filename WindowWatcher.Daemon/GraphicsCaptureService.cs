@@ -71,6 +71,18 @@ public sealed class GraphicsCaptureService : IDisposable
         return await CaptureItemAsync(item, cancellationToken);
     }
 
+    public async Task<BitmapSource?> CaptureDesktopAsync(CancellationToken cancellationToken)
+    {
+        IntPtr desktopWindow = GetDesktopWindow();
+        if (desktopWindow == IntPtr.Zero)
+        {
+            _loggingService.LogWarning("Desktop capture is unavailable because the desktop window handle is invalid.");
+            return null;
+        }
+
+        return await CaptureWindowAsync(desktopWindow, cancellationToken);
+    }
+
     private async Task<BitmapSource?> CaptureItemAsync(GraphicsCaptureItem item, CancellationToken cancellationToken)
     {
         using var framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
@@ -165,7 +177,7 @@ public sealed class GraphicsCaptureService : IDisposable
         Guid iid = IID_IGraphicsCaptureItem;
 
         int hr = interop.CreateForWindow(windowHandle, ref iid, out IntPtr itemPointer);
-        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED)
+        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED || hr == E_INVALIDARG)
         {
             _loggingService.LogWarning($"Windows could not create a capture item for the active window (HRESULT 0x{hr:X8}).");
             return null;
@@ -181,20 +193,7 @@ public sealed class GraphicsCaptureService : IDisposable
             return null;
         }
 
-        try
-        {
-            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
-            if (item == null)
-            {
-                _loggingService.LogWarning("Windows returned an invalid capture item for the active window.");
-            }
-
-            return item;
-        }
-        finally
-        {
-            Marshal.Release(itemPointer);
-        }
+        return CreateProjectedCaptureItem(itemPointer, "active window");
     }
 
     private GraphicsCaptureItem? CreateItemForMonitor(IntPtr monitorHandle)
@@ -203,7 +202,7 @@ public sealed class GraphicsCaptureService : IDisposable
         Guid iid = IID_IGraphicsCaptureItem;
 
         int hr = interop.CreateForMonitor(monitorHandle, ref iid, out IntPtr itemPointer);
-        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED)
+        if (hr == E_NOINTERFACE || hr == E_NOTIMPL || hr == E_ACCESSDENIED || hr == E_INVALIDARG)
         {
             _loggingService.LogWarning($"Windows could not create a capture item for the monitor (HRESULT 0x{hr:X8}).");
             return null;
@@ -219,18 +218,32 @@ public sealed class GraphicsCaptureService : IDisposable
             return null;
         }
 
+        return CreateProjectedCaptureItem(itemPointer, $"monitor handle 0x{monitorHandle.ToInt64():X}");
+    }
+
+    private GraphicsCaptureItem? CreateProjectedCaptureItem(IntPtr itemPointer, string sourceDescription)
+    {
         try
         {
-            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
-            if (item == null)
+            // The interop APIs hand back a raw ABI pointer to IGraphicsCaptureItem. Classic COM
+            // interop (Marshal.GetObjectForIUnknown) produces a __ComObject that cannot be cast to
+            // the CsWinRT projected type, so use the WinRT marshaller to build a proper projection.
+            var captureItem = WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPointer);
+            if (captureItem == null)
             {
-                _loggingService.LogWarning("Windows returned an invalid capture item for the monitor.");
+                _loggingService.LogWarning($"WinRT projection returned null for capture item from {sourceDescription}.");
             }
 
-            return item;
+            return captureItem;
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogWarning($"Capture item projection failed for {sourceDescription}: {ex.GetType().Name}: {ex.Message}");
+            return null;
         }
         finally
         {
+            // FromAbi takes its own reference, so release the one handed back by the interop call.
             Marshal.Release(itemPointer);
         }
     }
@@ -287,7 +300,9 @@ public sealed class GraphicsCaptureService : IDisposable
                 Marshal.ThrowExceptionForHR(createHr);
             }
 
-            return (IDirect3DDevice)Marshal.GetObjectForIUnknown(inspectable);
+            // Project the ABI pointer into the WinRT type. Classic COM interop yields a __ComObject
+            // that CsWinRT cannot marshal back across the projected Direct3D11CaptureFramePool APIs.
+            return WinRT.MarshalInterface<IDirect3DDevice>.FromAbi(inspectable);
         }
         finally
         {
@@ -378,6 +393,7 @@ public sealed class GraphicsCaptureService : IDisposable
     private const int E_NOINTERFACE = unchecked((int)0x80004002);
     private const int E_NOTIMPL = unchecked((int)0x80004001);
     private const int E_ACCESSDENIED = unchecked((int)0x80070005);
+    private const int E_INVALIDARG = unchecked((int)0x80070057);
 
     private static readonly Guid IID_IDXGIDevice = new("54EC77FA-1377-44E6-8C32-88FD5F44C84C");
     private static readonly Guid IID_IGraphicsCaptureItem = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
@@ -406,4 +422,7 @@ public sealed class GraphicsCaptureService : IDisposable
 
     [DllImport("combase.dll", ExactSpelling = true)]
     private static extern int WindowsDeleteString(IntPtr hString);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetDesktopWindow();
 }
