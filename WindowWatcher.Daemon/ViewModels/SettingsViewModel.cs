@@ -4,7 +4,7 @@ using System.Windows.Input;
 using WindowWatcher.Common.Models;
 using WindowWatcher.Common.Services;
 
-namespace WindowWatcher.ScreenshotViewer.ViewModels;
+namespace WindowWatcher.Daemon.ViewModels;
 
 public class SettingsViewModel : INotifyPropertyChanged
 {
@@ -53,7 +53,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Failed to save settings: {ex.Message}", "Error", 
+            System.Windows.MessageBox.Show($"Failed to save settings: {ex.Message}", "Error",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
@@ -69,7 +69,6 @@ public class SettingsViewModel : INotifyPropertyChanged
             ValidateNames = false
         };
 
-        // Trick to allow folder selection
         if (dialog.ShowDialog() == true)
         {
             var path = System.IO.Path.GetDirectoryName(dialog.FileName);
@@ -88,7 +87,6 @@ public class SettingsViewModel : INotifyPropertyChanged
     }
 }
 
-// Simple RelayCommand implementation
 public class RelayCommand : ICommand
 {
     private readonly Action _execute;

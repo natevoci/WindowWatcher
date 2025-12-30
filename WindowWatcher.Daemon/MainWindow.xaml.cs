@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using WindowWatcher.Common.Services;
 
 namespace WindowWatcher.Daemon;
 
 public partial class MainWindow : Window
 {
     private readonly ViewEventsViewModel _viewEventsViewModel;
+    private readonly SettingsService _settingsService;
     private ViewEventsWindow? _viewEventsWindow;
 
     public MainWindow()
@@ -14,6 +16,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _viewEventsViewModel = new ViewEventsViewModel();
+        _settingsService = new SettingsService();
     }
 
     private void ShowViewEventsWindow()
@@ -94,6 +97,16 @@ public partial class MainWindow : Window
             ShowMessageBox($"Failed to launch WindowWatcher.ScreenshotViewer:\n{ex.Message}",
                 "Launch Error", MessageBoxImage.Error);
         }
+    }
+
+    private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var settingsWindow = new SettingsWindow(_settingsService)
+        {
+            Owner = this
+        };
+
+        settingsWindow.ShowDialog();
     }
 
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)

@@ -33,20 +33,6 @@ public partial class ScreenshotViewerWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
 
-    private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var settingsWindow = new SettingsWindow(_settingsService)
-        {
-            Owner = this
-        };
-
-        if (settingsWindow.ShowDialog() == true)
-        {
-            // Settings were saved, refresh the data
-            _viewModel.RefreshData();
-        }
-    }
-
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
     {
         Close();
