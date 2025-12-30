@@ -4,12 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Settings" Height="250" Width="600"
+        Title="Settings" Height="430" Width="700"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -19,46 +18,124 @@
                    Text="Application Settings"
                    FontSize="20"
                    FontWeight="SemiBold"
-                   Margin="0,0,0,20"/>
+                   Margin="0,0,0,16"/>
 
-        <Grid Grid.Row="1" Margin="0,0,0,20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <Grid Margin="0,0,0,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Row="0"
-                       Grid.Column="0"
-                       Grid.ColumnSpan="2"
-                       Text="Screenshots Folder Path:"
-                       FontWeight="SemiBold"
-                       Margin="0,0,0,5"/>
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="0"
+                               Grid.ColumnSpan="2"
+                               Text="Screenshots Folder Path"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,5"/>
 
-            <TextBox Grid.Row="1"
-                     Grid.Column="0"
-                     Text="{Binding SnapshotsPath, UpdateSourceTrigger=PropertyChanged}"
-                     VerticalContentAlignment="Center"
-                     Height="32"
-                     Padding="5"
-                     Margin="0,0,10,0"/>
+                    <TextBox Grid.Row="1"
+                             Grid.Column="0"
+                             Text="{Binding SnapshotsPath, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"
+                             Margin="0,0,10,0"/>
 
-            <Button Grid.Row="1"
-                    Grid.Column="1"
-                    Content="Browse..."
-                    Command="{Binding BrowseCommand}"
-                    Width="80"
-                    Height="32"/>
-        </Grid>
+                    <Button Grid.Row="1"
+                            Grid.Column="1"
+                            Content="Browse..."
+                            Command="{Binding BrowseSnapshotsCommand}"
+                            Width="80"
+                            Height="32"/>
+                </Grid>
 
-        <Border Grid.Row="2"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="3"
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="0"
+                               Grid.ColumnSpan="2"
+                               Text="Data Directory"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,5"/>
+
+                    <TextBox Grid.Row="1"
+                             Grid.Column="0"
+                             Text="{Binding DataDirectory, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"
+                             Margin="0,0,10,0"/>
+
+                    <Button Grid.Row="1"
+                            Grid.Column="1"
+                            Content="Browse..."
+                            Command="{Binding BrowseDataDirectoryCommand}"
+                            Width="80"
+                            Height="32"/>
+                </Grid>
+
+                <CheckBox Content="Minimize on startup"
+                          IsChecked="{Binding MinimizeOnStartup}"
+                          Margin="0,0,0,16"/>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Idle timeout (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="How long the app can be inactive before writing an Inactive event." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBox Grid.Column="1"
+                             Text="{Binding IdleTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"/>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Log retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="How long to keep generated activity logs before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBox Grid.Column="1"
+                             Text="{Binding LogRetentionDays, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalContentAlignment="Center"
+                             Height="32"
+                             Padding="5"/>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
-                    HorizontalAlignment="Right">
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
             <Button Content="Save"
                     Command="{Binding SaveCommand}"
                     Width="80"

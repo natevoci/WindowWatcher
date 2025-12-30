@@ -10,15 +10,24 @@ public class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly SettingsService _settingsService;
     private string _snapshotsPath;
+    private string _dataDirectory;
+    private bool _minimizeOnStartup;
+    private int _idleTimeoutSeconds;
+    private int _logRetentionDays;
 
     public SettingsViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
         var settings = _settingsService.LoadSettings();
         _snapshotsPath = settings.SnapshotsPath;
+        _dataDirectory = settings.DataDirectory;
+        _minimizeOnStartup = settings.MinimizeOnStartup;
+        _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
+        _logRetentionDays = settings.LogRetentionDays;
 
         SaveCommand = new RelayCommand(Save);
-        BrowseCommand = new RelayCommand(Browse);
+        BrowseSnapshotsCommand = new RelayCommand(() => BrowsePath(path => SnapshotsPath = path));
+        BrowseDataDirectoryCommand = new RelayCommand(() => BrowsePath(path => DataDirectory = path));
     }
 
     public string SnapshotsPath
@@ -34,8 +43,61 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
+    public string DataDirectory
+    {
+        get => _dataDirectory;
+        set
+        {
+            if (_dataDirectory != value)
+            {
+                _dataDirectory = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool MinimizeOnStartup
+    {
+        get => _minimizeOnStartup;
+        set
+        {
+            if (_minimizeOnStartup != value)
+            {
+                _minimizeOnStartup = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int IdleTimeoutSeconds
+    {
+        get => _idleTimeoutSeconds;
+        set
+        {
+            if (_idleTimeoutSeconds != value)
+            {
+                _idleTimeoutSeconds = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int LogRetentionDays
+    {
+        get => _logRetentionDays;
+        set
+        {
+            if (_logRetentionDays != value)
+            {
+                _logRetentionDays = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public ICommand SaveCommand { get; }
-    public ICommand BrowseCommand { get; }
+    public ICommand BrowseSnapshotsCommand { get; }
+    public ICommand BrowseDataDirectoryCommand { get; }
 
     public event EventHandler? SettingsSaved;
 
@@ -43,7 +105,11 @@ public class SettingsViewModel : INotifyPropertyChanged
     {
         var settings = new AppSettings
         {
-            SnapshotsPath = SnapshotsPath
+            SnapshotsPath = SnapshotsPath,
+            DataDirectory = DataDirectory,
+            MinimizeOnStartup = MinimizeOnStartup,
+            IdleTimeoutSeconds = IdleTimeoutSeconds,
+            LogRetentionDays = LogRetentionDays
         };
 
         try
@@ -58,7 +124,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
-    private void Browse()
+    private void BrowsePath(Action<string> setPath)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -74,7 +140,7 @@ public class SettingsViewModel : INotifyPropertyChanged
             var path = System.IO.Path.GetDirectoryName(dialog.FileName);
             if (!string.IsNullOrEmpty(path))
             {
-                SnapshotsPath = path;
+                setPath(path);
             }
         }
     }

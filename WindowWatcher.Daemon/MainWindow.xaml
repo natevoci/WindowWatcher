@@ -18,6 +18,9 @@
             <MenuItem Header="View Events" FontWeight="Bold" Click="ViewEventsMenuItem_Click"/>
             <MenuItem Header="View Analyser" Click="ViewAnalyserMenuItem_Click"/>
             <MenuItem Header="View Screenshots" Click="ViewScreenshotsMenuItem_Click"/>
+
+            <Separator/>
+
             <MenuItem Header="Settings..." Click="SettingsMenuItem_Click"/>
 
             <Separator/>
