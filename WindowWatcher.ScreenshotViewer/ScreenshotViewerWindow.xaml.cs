@@ -22,6 +22,10 @@ public partial class ScreenshotViewerWindow : Window
     public ScreenshotViewerWindow()
     {
         InitializeComponent();
+#if DEBUG
+        PlayTestCacheButton.Visibility = Visibility.Visible;
+        PlayTestRenderButton.Visibility = Visibility.Visible;
+#endif
         _settingsService = new SettingsService();
         _viewModel = new MainViewModel(_settingsService);
         DataContext = _viewModel;
