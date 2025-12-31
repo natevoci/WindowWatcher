@@ -6,238 +6,258 @@
         mc:Ignorable="d"
         Title="Settings" Height="540" Width="700"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Grid Margin="20">
+        MinHeight="420"
+        MinWidth="560"
+        ResizeMode="CanResize">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0*"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Application Settings"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,16"/>
-
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
-                <Grid Margin="0,0,0,16">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                      HorizontalScrollBarVisibility="Disabled" Grid.ColumnSpan="2">
+            <StackPanel Margin="8">
 
-                    <TextBlock Grid.Row="0"
-                               Grid.Column="0"
-                               Grid.ColumnSpan="2"
-                               Text="Screenshots Folder Path"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,5"/>
+                <GroupBox Header="Screenshots" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                    <TextBox Grid.Row="1"
-                             Grid.Column="0"
-                             Text="{Binding SnapshotsPath, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"
-                             Margin="0,0,10,0"/>
+                            <TextBlock Grid.Row="0"
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="2"
+                                    Text="Screenshots Folder Path"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,5"/>
 
-                    <Button Grid.Row="1"
-                            Grid.Column="1"
-                            Content="Browse..."
-                            Command="{Binding BrowseSnapshotsCommand}"
-                            Width="80"
-                            Height="32"/>
-                </Grid>
+                            <TextBox Grid.Row="1"
+                                    Grid.Column="0"
+                                    Text="{Binding SnapshotsPath, UpdateSourceTrigger=PropertyChanged}"
+                                    VerticalContentAlignment="Center"
+                                    Height="32"
+                                    Padding="5"
+                                    Margin="0,0,10,0"/>
 
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
+                            <Button Grid.Row="1"
+                                    Grid.Column="1"
+                                    Content="Browse..."
+                                    Command="{Binding BrowseSnapshotsCommand}"
+                                    Width="80"
+                                    Height="32"/>
+                        </Grid>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Screenshot interval (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="Capture cadence while the service is running." Foreground="#666666" TextWrapping="Wrap"/>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Screenshot interval (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="Capture cadence while the service is running." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <TextBox Grid.Column="1"
+                                    Text="{Binding ScreenshotIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    VerticalContentAlignment="Center"
+                                    Height="32"
+                                    Padding="5"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Screens to capture" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="Choose all screens, the active app, or a specific attached display." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <ComboBox Grid.Column="1"
+                                    ItemsSource="{Binding CaptureTargetOptions}"
+                                    DisplayMemberPath="DisplayName"
+                                    SelectedValuePath="Value"
+                                    SelectedValue="{Binding ScreenshotCaptureTarget, UpdateSourceTrigger=PropertyChanged}"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"
+                                    Margin="0,0,10,0"/>
+
+                            <Button Grid.Column="2"
+                                    Content="Refresh"
+                                    Command="{Binding RefreshCaptureTargetsCommand}"
+                                    Width="80"
+                                    Height="32"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Image format" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="PNG is lossless but slower and larger. JPEG saves and loads faster with much smaller files (lossy)." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <ComboBox Grid.Column="1"
+                                    ItemsSource="{Binding ImageFormatOptions}"
+                                    DisplayMemberPath="DisplayName"
+                                    SelectedValuePath="Value"
+                                    SelectedValue="{Binding ScreenshotImageFormat, UpdateSourceTrigger=PropertyChanged}"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"/>
+                        </Grid>
+
                     </StackPanel>
+                </GroupBox>
 
-                    <TextBox Grid.Column="1"
-                             Text="{Binding ScreenshotIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"/>
-                </Grid>
+                <GroupBox Header="Activity Logs" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
 
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Screens to capture" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="Choose all screens, the active app, or a specific attached display." Foreground="#666666" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Grid.ColumnSpan="2"
+                                       Text="Data Directory"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,5"/>
+
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="0"
+                                     Text="{Binding DataDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     Height="32"
+                                     Padding="5"
+                                     Margin="0,0,10,0"/>
+
+                            <Button Grid.Row="1"
+                                    Grid.Column="1"
+                                    Content="Browse..."
+                                    Command="{Binding BrowseDataDirectoryCommand}"
+                                    Width="80"
+                                    Height="32"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Idle timeout (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="How long the app can be inactive before writing an Inactive event." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <TextBox Grid.Column="1"
+                                    Text="{Binding IdleTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    VerticalContentAlignment="Center"
+                                    Height="32"
+                                    Padding="5"/>
+                        </Grid>
+
                     </StackPanel>
+                </GroupBox>
 
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding CaptureTargetOptions}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding ScreenshotCaptureTarget, UpdateSourceTrigger=PropertyChanged}"
-                              Height="32"
-                              VerticalContentAlignment="Center"
-                              Margin="0,0,10,0"/>
+                <GroupBox Header="Data Cleanup" Margin="0,0,0,16" Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
 
-                    <Button Grid.Column="2"
-                            Content="Refresh"
-                            Command="{Binding RefreshCaptureTargetsCommand}"
-                            Width="80"
-                            Height="32"/>
-                </Grid>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Screenshot retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="How long screenshot date folders are kept before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
 
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ScreenshotRetentionDays, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     Height="32"
+                                     Padding="5"/>
+                        </Grid>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Image format" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="PNG is lossless but slower and larger. JPEG saves and loads faster with much smaller files (lossy)." Foreground="#666666" TextWrapping="Wrap"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Activity Log retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="How long to keep generated activity logs before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding LogRetentionDays, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     Height="32"
+                                     Padding="5"/>
+                        </Grid>
                     </StackPanel>
+                </GroupBox>
 
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding ImageFormatOptions}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding ScreenshotImageFormat, UpdateSourceTrigger=PropertyChanged}"
-                              Height="32"
-                              VerticalContentAlignment="Center"/>
-                </Grid>
+                <GroupBox Header="Misc" Margin="0,0,0,0" Padding="12">
+                    <StackPanel>
+                        <CheckBox Content="Minimize on startup"
+                                  IsChecked="{Binding MinimizeOnStartup}"/>
 
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Screenshot retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="How long screenshot date folders are kept before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Log level" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="Write this level and more severe events to the application log file." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <ComboBox Grid.Column="1"
+                                    ItemsSource="{Binding LogLevelOptions}"
+                                    SelectedItem="{Binding LogLevel, UpdateSourceTrigger=PropertyChanged}"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"/>
+                        </Grid>
                     </StackPanel>
+                </GroupBox>
 
-                    <TextBox Grid.Column="1"
-                             Text="{Binding ScreenshotRetentionDays, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"/>
-                </Grid>
-
-                <Grid Margin="0,0,0,16">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Row="0"
-                               Grid.Column="0"
-                               Grid.ColumnSpan="2"
-                               Text="Data Directory"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,5"/>
-
-                    <TextBox Grid.Row="1"
-                             Grid.Column="0"
-                             Text="{Binding DataDirectory, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"
-                             Margin="0,0,10,0"/>
-
-                    <Button Grid.Row="1"
-                            Grid.Column="1"
-                            Content="Browse..."
-                            Command="{Binding BrowseDataDirectoryCommand}"
-                            Width="80"
-                            Height="32"/>
-                </Grid>
-
-                <CheckBox Content="Minimize on startup"
-                          IsChecked="{Binding MinimizeOnStartup}"
-                          Margin="0,0,0,16"/>
-
-                <Grid Margin="0,0,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Idle timeout (seconds)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="How long the app can be inactive before writing an Inactive event." Foreground="#666666" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <TextBox Grid.Column="1"
-                             Text="{Binding IdleTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"/>
-                </Grid>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Log retention (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="How long to keep generated activity logs before cleanup." Foreground="#666666" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <TextBox Grid.Column="1"
-                             Text="{Binding LogRetentionDays, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalContentAlignment="Center"
-                             Height="32"
-                             Padding="5"/>
-                </Grid>
-
-                <Grid Margin="0,16,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Log level" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <TextBlock Text="Write this level and more severe events to the application log file." Foreground="#666666" TextWrapping="Wrap"/>
-                    </StackPanel>
-
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding LogLevelOptions}"
-                              SelectedItem="{Binding LogLevel, UpdateSourceTrigger=PropertyChanged}"
-                              Height="32"
-                              VerticalContentAlignment="Center"/>
-                </Grid>
             </StackPanel>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2"
+        <StackPanel Grid.Row="1"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Margin="0,16,0,0">
+                    Margin="16" Grid.ColumnSpan="2">
             <Button Content="Save"
                     Command="{Binding SaveCommand}"
                     Width="80"

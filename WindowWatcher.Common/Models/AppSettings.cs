@@ -10,7 +10,7 @@ public class AppSettings
     public string LogLevel { get; set; } = "Information";
     public int ScreenshotIntervalSeconds { get; set; } = 5;
     public string ScreenshotCaptureTarget { get; set; } = "AllScreens";
-    public string ScreenshotImageFormat { get; set; } = "Png";
+    public string ScreenshotImageFormat { get; set; } = "Jpeg";
     public int ScreenshotRetentionDays { get; set; } = 30;
 
     public AppSettings Clone()
