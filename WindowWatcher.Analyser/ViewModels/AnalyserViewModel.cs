@@ -182,27 +182,39 @@ public class AnalyserViewModel : INotifyPropertyChanged
         FilteredEvents = new ObservableCollection<WindowActivityEvent>(filtered);
 
         // Build rows for display
-        var rowSet = new HashSet<string>();
+        var rowDurations = new Dictionary<string, double>();
         foreach (var evt in filtered)
         {
+            string? rowName = null;
+
             if (evt.EventType == WindowActivityEventType.Inactive)
             {
-                rowSet.Add("Idle");
+                rowName = "Idle";
             }
             else if (evt.EventType == WindowActivityEventType.WindowActivated)
             {
                 if (_selectedProcess == "-- All Processes --" || string.IsNullOrEmpty(_selectedProcess))
                 {
-                    rowSet.Add(evt.ProcessName);
+                    rowName = evt.ProcessName;
                 }
                 else
                 {
-                    rowSet.Add($"{evt.ProcessName} - {evt.WindowTitle}");
+                    rowName = $"{evt.ProcessName} - {evt.WindowTitle}";
                 }
+            }
+
+            if (rowName != null)
+            {
+                rowDurations.TryGetValue(rowName, out var duration);
+                rowDurations[rowName] = duration + evt.DurationSeconds;
             }
         }
 
-        var sortedRows = rowSet.OrderBy(r => r).ToList();
+        var sortedRows = rowDurations
+            .OrderByDescending(group => group.Value)
+            .ThenBy(group => group.Key)
+            .Select(group => group.Key)
+            .ToList();
         if (sortedRows.Contains("Idle"))
         {
             sortedRows.Remove("Idle");

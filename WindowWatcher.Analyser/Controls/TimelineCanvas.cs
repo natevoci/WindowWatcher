@@ -142,6 +142,8 @@ public class TimelineCanvas : FrameworkElement
 
             // Draw events
             DrawEvents(dc, width, pixelsPerSecond);
+
+            DrawRowTitles(dc, width);
         }
 
         AddVisualChild(visual);
@@ -234,6 +236,34 @@ public class TimelineCanvas : FrameworkElement
 
                 dc.DrawLine(new Pen(brush, 1), new Point(pixel, startY), new Point(pixel, startY + RowHeight));
             }
+        }
+    }
+
+    private void DrawRowTitles(DrawingContext dc, double width)
+    {
+        if (Rows == null)
+            return;
+
+        var typeface = new Typeface("Tahoma");
+        var dashedPen = new Pen(Brushes.Gray, 1) { DashStyle = DashStyles.Dash };
+        var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+        for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++)
+        {
+            var startY = OffsetY + (rowIndex * RowHeight);
+            var rowName = Rows[rowIndex];
+            var formattedText = new FormattedText(
+                rowName,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                13,
+                Brushes.LightGreen,
+                pixelsPerDip);
+
+            dc.DrawLine(dashedPen, new Point(0, startY), new Point(width, startY));
+            dc.DrawText(formattedText, new Point(0, startY));
+            dc.DrawText(formattedText, new Point(width / 2, startY));
         }
     }
 }
