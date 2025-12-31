@@ -23,11 +23,16 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _isZoomed;
     private int _loadRequestCounter = 0;
 
-    public MainViewModel(SettingsService settingsService)
+    public MainViewModel(SettingsService settingsService, string? screenshotsFolder = null)
     {
         _settingsService = settingsService;
         _snapshotService = new SnapshotService(_settingsService);
         _imageCache = new ImageCacheService();
+
+        if (!string.IsNullOrWhiteSpace(screenshotsFolder))
+        {
+            _snapshotService.SetSnapshotsPathOverride(screenshotsFolder);
+        }
         
         // Initialize with the most recent date
         var availableDates = _snapshotService.GetAvailableDates();

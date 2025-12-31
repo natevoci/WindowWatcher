@@ -20,7 +20,7 @@ public partial class ScreenshotViewerWindow : Window
     private double _scrollStartY;
     private System.Diagnostics.Stopwatch _playTestStopwatch = new System.Diagnostics.Stopwatch();
 
-    public ScreenshotViewerWindow()
+    public ScreenshotViewerWindow(string? screenshotsFolder = null)
     {
         InitializeComponent();
 #if DEBUG
@@ -29,7 +29,7 @@ public partial class ScreenshotViewerWindow : Window
 #endif
         _settingsService = new SettingsService();
         _loggingService = new LoggingService(_settingsService);
-        _viewModel = new MainViewModel(_settingsService);
+        _viewModel = new MainViewModel(_settingsService, screenshotsFolder);
         DataContext = _viewModel;
 
         // Add keyboard bindings
