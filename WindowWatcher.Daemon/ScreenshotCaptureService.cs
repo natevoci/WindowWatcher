@@ -126,17 +126,8 @@ public sealed class ScreenshotCaptureService : IDisposable
         var settings = _settingsService.LoadSettings();
         if (!string.IsNullOrWhiteSpace(captureTargetOverride))
         {
-            settings = new AppSettings
-            {
-                SnapshotsPath = settings.SnapshotsPath,
-                DataDirectory = settings.DataDirectory,
-                MinimizeOnStartup = settings.MinimizeOnStartup,
-                IdleTimeoutSeconds = settings.IdleTimeoutSeconds,
-                LogRetentionDays = settings.LogRetentionDays,
-                ScreenshotIntervalSeconds = settings.ScreenshotIntervalSeconds,
-                ScreenshotCaptureTarget = captureTargetOverride,
-                ScreenshotRetentionDays = settings.ScreenshotRetentionDays
-            };
+            settings = settings.Clone();
+            settings.ScreenshotCaptureTarget = captureTargetOverride;
         }
 
         _loggingService.LogDebug($"Single screenshot capture started for target '{settings.ScreenshotCaptureTarget}'.");
@@ -252,14 +243,26 @@ public sealed class ScreenshotCaptureService : IDisposable
         string dayFolder = Path.Combine(settings.SnapshotsPath, now.ToString("yyyy-MM-dd"));
         Directory.CreateDirectory(dayFolder);
 
+        bool useJpeg = string.Equals(settings.ScreenshotImageFormat, "Jpeg", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(settings.ScreenshotImageFormat, "Jpg", StringComparison.OrdinalIgnoreCase);
+        string extension = useJpeg ? "jpg" : "png";
+
         // Keep a 4-digit fractional second suffix compatible with viewer parsing.
-        string filename = $"{now:HH.mm.ss.ffff}.png";
+        string filename = $"{now:HH.mm.ss.ffff}.{extension}";
         string outputPath = Path.Combine(dayFolder, filename);
 
         var encodeTimer = Stopwatch.StartNew();
         using var fileStream = File.Create(outputPath);
-        FastPngEncoder.Encode(image.Pixels, image.Width, image.Height, image.Stride, fileStream);
-        _loggingService.LogDebug($"Saved {image.Width}x{image.Height} screenshot to '{outputPath}' in {encodeTimer.ElapsedMilliseconds} ms; total capture time was {totalTimer.ElapsedMilliseconds} ms.");
+        if (useJpeg)
+        {
+            JpegImageEncoder.Encode(image.Pixels, image.Width, image.Height, image.Stride, fileStream);
+        }
+        else
+        {
+            FastPngEncoder.Encode(image.Pixels, image.Width, image.Height, image.Stride, fileStream);
+        }
+
+        _loggingService.LogDebug($"Saved {image.Width}x{image.Height} {extension.ToUpperInvariant()} screenshot to '{outputPath}' in {encodeTimer.ElapsedMilliseconds} ms; total capture time was {totalTimer.ElapsedMilliseconds} ms.");
         return true;
     }
 

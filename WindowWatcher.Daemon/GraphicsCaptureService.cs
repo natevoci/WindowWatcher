@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Diagnostics;
+using Microsoft.Win32;
 using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
@@ -15,12 +16,37 @@ public sealed class GraphicsCaptureService : IDisposable
     private readonly IDirect3DDevice _direct3DDevice;
     private readonly LoggingService _loggingService;
 
+    // Creating a GraphicsCaptureItem (CreateForMonitor) is the dominant per-capture setup cost
+    // (~150 ms per monitor). A monitor's capture item stays valid until the display configuration
+    // changes, so items are cached and only rebuilt when Windows reports a display settings change.
+    private readonly object _cacheLock = new();
+    private readonly Dictionary<IntPtr, GraphicsCaptureItem> _monitorItemCache = new();
+    private IGraphicsCaptureItemInterop? _captureItemInterop;
+    private bool _disposed;
+
     public GraphicsCaptureService(LoggingService loggingService)
     {
         _loggingService = loggingService;
         var deviceTimer = Stopwatch.StartNew();
         _direct3DDevice = CreateDirect3DDevice();
         _loggingService.LogDebug($"Initialized the Direct3D capture device in {deviceTimer.ElapsedMilliseconds} ms.");
+
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        lock (_cacheLock)
+        {
+            if (_monitorItemCache.Count == 0)
+            {
+                return;
+            }
+
+            _monitorItemCache.Clear();
+        }
+
+        _loggingService.LogDebug("Display settings changed; cleared cached monitor capture items.");
     }
 
     public async Task<CapturedImage?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
@@ -219,6 +245,15 @@ public sealed class GraphicsCaptureService : IDisposable
 
     private GraphicsCaptureItem? CreateItemForMonitor(IntPtr monitorHandle)
     {
+        lock (_cacheLock)
+        {
+            if (_monitorItemCache.TryGetValue(monitorHandle, out GraphicsCaptureItem? cached))
+            {
+                _loggingService.LogTrace($"Reusing cached capture item for monitor handle 0x{monitorHandle.ToInt64():X}.");
+                return cached;
+            }
+        }
+
         var itemTimer = Stopwatch.StartNew();
         var interop = GetCaptureItemInterop();
         Guid iid = IID_IGraphicsCaptureItem;
@@ -241,7 +276,16 @@ public sealed class GraphicsCaptureService : IDisposable
             return null;
         }
 
-        return CreateProjectedCaptureItem(itemPointer, $"monitor handle 0x{monitorHandle.ToInt64():X}");
+        GraphicsCaptureItem? item = CreateProjectedCaptureItem(itemPointer, $"monitor handle 0x{monitorHandle.ToInt64():X}");
+        if (item != null)
+        {
+            lock (_cacheLock)
+            {
+                _monitorItemCache[monitorHandle] = item;
+            }
+        }
+
+        return item;
     }
 
     private GraphicsCaptureItem? CreateProjectedCaptureItem(IntPtr itemPointer, string sourceDescription)
@@ -356,14 +400,36 @@ public sealed class GraphicsCaptureService : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+
+        lock (_cacheLock)
+        {
+            _monitorItemCache.Clear();
+            _captureItemInterop = null;
+        }
+
         if (_direct3DDevice is IDisposable disposable)
         {
             disposable.Dispose();
         }
     }
 
-    private static IGraphicsCaptureItemInterop GetCaptureItemInterop()
+    private IGraphicsCaptureItemInterop GetCaptureItemInterop()
     {
+        lock (_cacheLock)
+        {
+            if (_captureItemInterop != null)
+            {
+                return _captureItemInterop;
+            }
+        }
+
         IntPtr classId = IntPtr.Zero;
         IntPtr factory = IntPtr.Zero;
         try
@@ -384,7 +450,12 @@ public sealed class GraphicsCaptureService : IDisposable
                 Marshal.ThrowExceptionForHR(hr);
             }
 
-            return (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(factory);
+            var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(factory);
+            lock (_cacheLock)
+            {
+                _captureItemInterop ??= interop;
+                return _captureItemInterop;
+            }
         }
         finally
         {

@@ -20,6 +20,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     private string _logLevel;
     private int _screenshotIntervalSeconds;
     private string _screenshotCaptureTarget;
+    private string _screenshotImageFormat;
     private int _screenshotRetentionDays;
 
     public SettingsViewModel(SettingsService settingsService, LoggingService loggingService)
@@ -35,9 +36,15 @@ public class SettingsViewModel : INotifyPropertyChanged
         _logLevel = settings.LogLevel;
         _screenshotIntervalSeconds = settings.ScreenshotIntervalSeconds;
         _screenshotCaptureTarget = settings.ScreenshotCaptureTarget;
+        _screenshotImageFormat = NormalizeImageFormat(settings.ScreenshotImageFormat);
         _screenshotRetentionDays = settings.ScreenshotRetentionDays;
 
         CaptureTargetOptions = new ObservableCollection<CaptureTargetOption>();
+        ImageFormatOptions = new ObservableCollection<ImageFormatOption>
+        {
+            new("PNG (lossless, larger)", "Png"),
+            new("JPEG (fast, smaller, lossy)", "Jpeg")
+        };
         LogLevelOptions = new ObservableCollection<string>
         {
             "Trace",
@@ -159,6 +166,19 @@ public class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
+    public string ScreenshotImageFormat
+    {
+        get => _screenshotImageFormat;
+        set
+        {
+            if (_screenshotImageFormat != value)
+            {
+                _screenshotImageFormat = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public int ScreenshotRetentionDays
     {
         get => _screenshotRetentionDays;
@@ -173,6 +193,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<CaptureTargetOption> CaptureTargetOptions { get; }
+    public ObservableCollection<ImageFormatOption> ImageFormatOptions { get; }
     public ObservableCollection<string> LogLevelOptions { get; }
 
     public ICommand SaveCommand { get; }
@@ -194,6 +215,7 @@ public class SettingsViewModel : INotifyPropertyChanged
             LogLevel = LogLevel,
             ScreenshotIntervalSeconds = ScreenshotIntervalSeconds,
             ScreenshotCaptureTarget = ScreenshotCaptureTarget,
+            ScreenshotImageFormat = ScreenshotImageFormat,
             ScreenshotRetentionDays = ScreenshotRetentionDays
         };
 
@@ -231,6 +253,14 @@ public class SettingsViewModel : INotifyPropertyChanged
         ScreenshotCaptureTarget = preferredExists ? preferredTarget! : "AllScreens";
     }
 
+    private static string NormalizeImageFormat(string? format)
+    {
+        return string.Equals(format, "Jpeg", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(format, "Jpg", StringComparison.OrdinalIgnoreCase)
+            ? "Jpeg"
+            : "Png";
+    }
+
     private void BrowsePath(Action<string> setPath)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
@@ -263,6 +293,18 @@ public class SettingsViewModel : INotifyPropertyChanged
 public sealed class CaptureTargetOption
 {
     public CaptureTargetOption(string displayName, string value)
+    {
+        DisplayName = displayName;
+        Value = value;
+    }
+
+    public string DisplayName { get; }
+    public string Value { get; }
+}
+
+public sealed class ImageFormatOption
+{
+    public ImageFormatOption(string displayName, string value)
     {
         DisplayName = displayName;
         Value = value;

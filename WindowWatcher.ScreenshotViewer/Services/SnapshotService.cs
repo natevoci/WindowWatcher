@@ -45,9 +45,14 @@ public class SnapshotService
             return new List<SnapshotInfo>();
 
         var snapshots = new List<SnapshotInfo>();
-        var pngFiles = Directory.GetFiles(dateFolder, "*.png");
-        
-        foreach (var filePath in pngFiles)
+        var imageFiles = Directory.EnumerateFiles(dateFolder)
+            .Where(f =>
+            {
+                var extension = Path.GetExtension(f).ToLowerInvariant();
+                return extension is ".png" or ".jpg" or ".jpeg";
+            });
+
+        foreach (var filePath in imageFiles)
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
             if (TryParseTimestamp(fileName, out var timeOfDay))

@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Settings" Height="490" Width="700"
+        Title="Settings" Height="540" Width="700"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="20">
@@ -101,6 +101,26 @@
                             Command="{Binding RefreshCaptureTargetsCommand}"
                             Width="80"
                             Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Image format" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBlock Text="PNG is lossless but slower and larger. JPEG saves and loads faster with much smaller files (lossy)." Foreground="#666666" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding ImageFormatOptions}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding ScreenshotImageFormat, UpdateSourceTrigger=PropertyChanged}"
+                              Height="32"
+                              VerticalContentAlignment="Center"/>
                 </Grid>
 
                 <Grid Margin="0,0,0,16">
