@@ -15,7 +15,7 @@ public class HeatMapCanvas : FrameworkElement
     {
         base.OnRender(dc);
 
-        if (TimelineSlider?.Snapshots == null || TimelineSlider.Snapshots.Count == 0)
+        if (TimelineSlider?.Screenshots == null || TimelineSlider.Screenshots.Count == 0)
             return;
 
         DrawHeatMap(dc);
@@ -26,10 +26,10 @@ public class HeatMapCanvas : FrameworkElement
         if (TimelineSlider == null || ActualWidth <= 0 || ActualHeight <= 0)
             return;
 
-        var snapshots = TimelineSlider.Snapshots;
-        if (snapshots == null)
+        var screenshots = TimelineSlider.Screenshots;
+        if (screenshots == null)
             return;
-        if (snapshots.Count == 0)
+        if (screenshots.Count == 0)
             return;
 
         // Account for half the thumb width on each side
@@ -40,12 +40,12 @@ public class HeatMapCanvas : FrameworkElement
         const double labelHeight = 15;
         var trackRect = new Rect(thumbHalfWidth, 0, ActualWidth - ThumbWidth, ActualHeight - labelHeight);
 
-        // Calculate time range based on first and last snapshot
-        var startTime = snapshots[0].TimeOfDay;
-        var endTime = snapshots[^1].TimeOfDay;
+        // Calculate time range based on first and last screenshot
+        var startTime = screenshots[0].TimeOfDay;
+        var endTime = screenshots[^1].TimeOfDay;
         var timeRange = endTime - startTime;
         
-        // Handle edge case where there's only one snapshot or very small range
+        // Handle edge case where there's only one screenshot or very small range
         if (timeRange.TotalSeconds < 1)
             timeRange = TimeSpan.FromHours(1); // Default to 1 hour range for display
 
@@ -86,13 +86,13 @@ public class HeatMapCanvas : FrameworkElement
             dc.DrawText(formattedText, new Point(x - formattedText.Width / 2, trackRect.Bottom));
         }
 
-        // Draw vertical line for each snapshot
+        // Draw vertical line for each screenshot
         var brush = new SolidColorBrush(Colors.White) { Opacity = 0.3 };
         var pen = new Pen(brush, 1);
         
-        foreach (var snapshot in snapshots)
+        foreach (var screenshot in screenshots)
         {
-            var position = ((snapshot.TimeOfDay - startTime).TotalSeconds / totalSeconds) * trackRect.Width;
+            var position = ((screenshot.TimeOfDay - startTime).TotalSeconds / totalSeconds) * trackRect.Width;
             var x = trackRect.Left + position;
             
             dc.DrawLine(pen, 

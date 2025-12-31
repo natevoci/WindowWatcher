@@ -97,20 +97,20 @@ public sealed class DataCleanupService : IDisposable
     private void RunCleanup()
     {
         var settings = _settingsService.LoadSettings();
-        CleanupScreenshots(settings.SnapshotsPath, settings.ScreenshotRetentionDays);
+        CleanupScreenshots(settings.ScreenshotsPath, settings.ScreenshotRetentionDays);
         CleanupActivityLogs(settings.DataDirectory, settings.LogRetentionDays);
         CleanupLogFiles(_loggingService.LogDirectory, settings.LogRetentionDays);
     }
 
-    private void CleanupScreenshots(string snapshotsPath, int retentionDays)
+    private void CleanupScreenshots(string screenshotsPath, int retentionDays)
     {
-        if (!Directory.Exists(snapshotsPath))
+        if (!Directory.Exists(screenshotsPath))
         {
             return;
         }
 
         DateTime cutoffDate = DateTime.Today.AddDays(-Math.Max(1, retentionDays));
-        foreach (string directoryPath in Directory.GetDirectories(snapshotsPath))
+        foreach (string directoryPath in Directory.GetDirectories(screenshotsPath))
         {
             string folderName = Path.GetFileName(directoryPath);
             if (!DateTime.TryParseExact(folderName, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime folderDate))

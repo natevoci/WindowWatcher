@@ -5,35 +5,35 @@ using WindowWatcher.ScreenshotViewer.Models;
 
 namespace WindowWatcher.ScreenshotViewer.Services;
 
-public class SnapshotService
+public class ScreenshotService
 {
     private readonly SettingsService _settingsService;
     
-    public SnapshotService(SettingsService settingsService)
+    public ScreenshotService(SettingsService settingsService)
     {
         _settingsService = settingsService;
     }
 
-    private string? _snapshotsPathOverride;
+    private string? _screenshotsPathOverride;
 
-    public string SnapshotsPath => _snapshotsPathOverride ?? _settingsService.LoadSettings().SnapshotsPath;
+    public string ScreenshotsPath => _screenshotsPathOverride ?? _settingsService.LoadSettings().ScreenshotsPath;
 
-    public void SetSnapshotsPathOverride(string snapshotsPath)
+    public void SetScreenshotsPathOverride(string screenshotsPath)
     {
-        _snapshotsPathOverride = snapshotsPath;
+        _screenshotsPathOverride = screenshotsPath;
     }
 
-    private string GetSnapshotsPath() => SnapshotsPath;
+    private string GetScreenshotsPath() => ScreenshotsPath;
 
     public List<DateTime> GetAvailableDates()
     {
-        var snapshotsPath = GetSnapshotsPath();
-        if (!Directory.Exists(snapshotsPath))
+        var screenshotsPath = GetScreenshotsPath();
+        if (!Directory.Exists(screenshotsPath))
             return new List<DateTime>();
 
         var dates = new List<DateTime>();
         
-        foreach (var directory in Directory.GetDirectories(snapshotsPath))
+        foreach (var directory in Directory.GetDirectories(screenshotsPath))
         {
             var dirName = Path.GetFileName(directory);
             if (DateTime.TryParseExact(dirName, "yyyy-MM-dd", 
@@ -45,15 +45,15 @@ public class SnapshotService
         
         return dates.OrderByDescending(d => d).ToList();
     }
-    public List<SnapshotInfo> GetSnapshotsForDate(DateTime date)
+    public List<ScreenshotInfo> GetScreenshotsForDate(DateTime date)
     {
-        var snapshotsPath = GetSnapshotsPath();
-        var dateFolder = Path.Combine(snapshotsPath, date.ToString("yyyy-MM-dd"));
+        var screenshotsPath = GetScreenshotsPath();
+        var dateFolder = Path.Combine(screenshotsPath, date.ToString("yyyy-MM-dd"));
         
         if (!Directory.Exists(dateFolder))
-            return new List<SnapshotInfo>();
+            return new List<ScreenshotInfo>();
 
-        var snapshots = new List<SnapshotInfo>();
+        var screenshots = new List<ScreenshotInfo>();
         var imageFiles = Directory.EnumerateFiles(dateFolder)
             .Where(f =>
             {
@@ -66,7 +66,7 @@ public class SnapshotService
             var fileName = Path.GetFileNameWithoutExtension(filePath);
             if (TryParseTimestamp(fileName, out var timeOfDay))
             {
-                snapshots.Add(new SnapshotInfo
+                screenshots.Add(new ScreenshotInfo
                 {
                     FilePath = filePath,
                     TimeOfDay = timeOfDay,
@@ -77,13 +77,13 @@ public class SnapshotService
         }
         
         // Sort by time and assign indices
-        snapshots = snapshots.OrderBy(s => s.TimeOfDay).ToList();
-        for (int i = 0; i < snapshots.Count; i++)
+        screenshots = screenshots.OrderBy(s => s.TimeOfDay).ToList();
+        for (int i = 0; i < screenshots.Count; i++)
         {
-            snapshots[i] = snapshots[i] with { Index = i };
+            screenshots[i] = screenshots[i] with { Index = i };
         }
         
-        return snapshots;
+        return screenshots;
     }
 
     private bool TryParseTimestamp(string fileName, out TimeSpan timeOfDay)
@@ -122,13 +122,13 @@ public class SnapshotService
         return false;
     }
 
-    public SnapshotInfo? FindSnapshotBeforeTime(List<SnapshotInfo> snapshots, TimeSpan targetTime)
+    public ScreenshotInfo? FindScreenshotBeforeTime(List<ScreenshotInfo> screenshots, TimeSpan targetTime)
     {
-        return snapshots.LastOrDefault(s => s.TimeOfDay < targetTime);
+        return screenshots.LastOrDefault(s => s.TimeOfDay < targetTime);
     }
 
-    public SnapshotInfo? FindSnapshotAfterTime(List<SnapshotInfo> snapshots, TimeSpan targetTime)
+    public ScreenshotInfo? FindScreenshotAfterTime(List<ScreenshotInfo> screenshots, TimeSpan targetTime)
     {
-        return snapshots.FirstOrDefault(s => s.TimeOfDay > targetTime);
+        return screenshots.FirstOrDefault(s => s.TimeOfDay > targetTime);
     }
 }

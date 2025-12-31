@@ -174,8 +174,8 @@ public partial class ScreenshotViewerWindow : Window
             return;
         var availableDates = _viewModel
             .GetType()
-            .GetField("_snapshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.SnapshotService;
+            .GetField("_screenshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.ScreenshotService;
         if (availableDates == null)
             return;
         var dates = availableDates.GetAvailableDates().OrderBy(d => d).ToList();
@@ -192,8 +192,8 @@ public partial class ScreenshotViewerWindow : Window
             return;
         var availableDates = _viewModel
             .GetType()
-            .GetField("_snapshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.SnapshotService;
+            .GetField("_screenshotService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.GetValue(_viewModel) as WindowWatcher.ScreenshotViewer.Services.ScreenshotService;
         if (availableDates == null)
             return;
         var dates = availableDates.GetAvailableDates().OrderBy(d => d).ToList();
@@ -212,14 +212,14 @@ public partial class ScreenshotViewerWindow : Window
 
         var loadedTestImages = new List<System.Windows.Media.Imaging.BitmapImage>();
 
-        // Get the next 100 snapshots starting from current index
+        // Get the next 100 screenshots starting from current index
         int start = _viewModel.CurrentIndex;
-        int endIndex = Math.Min(start + 100, _viewModel.Snapshots.Count);
+        int endIndex = Math.Min(start + 100, _viewModel.Screenshots.Count);
         int count = endIndex - start;
 
         if (count <= 0)
         {
-            MessageBox.Show("No more snapshots to play.", "Play Test", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("No more screenshots to play.", "Play Test", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -227,7 +227,7 @@ public partial class ScreenshotViewerWindow : Window
 
         for (int i = start; i < endIndex; i++)
         {
-            var filePath = _viewModel.Snapshots[i].FilePath;
+            var filePath = _viewModel.Screenshots[i].FilePath;
             var image = _viewModel.ImageCache.LoadImage(filePath);
             if (image != null)
             {
@@ -248,7 +248,7 @@ public partial class ScreenshotViewerWindow : Window
         PlayTestRenderButton.IsEnabled = false;
 
         int start = _viewModel.CurrentIndex;
-        int endIndex = Math.Min(start + 100, _viewModel.Snapshots.Count);
+        int endIndex = Math.Min(start + 100, _viewModel.Screenshots.Count);
 
         try
         {
@@ -294,12 +294,12 @@ public partial class ScreenshotViewerWindow : Window
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            InitialDirectory = _viewModel.SnapshotsFolderPath
+            InitialDirectory = _viewModel.ScreenshotsFolderPath
         };
 
         if (dialog.ShowDialog() == true)
         {
-            _viewModel.SetSnapshotsFolder(dialog.FolderName);
+            _viewModel.SetScreenshotsFolder(dialog.FolderName);
         }
     }
 
@@ -321,6 +321,6 @@ public partial class ScreenshotViewerWindow : Window
 
     private void CopyScreenshotsFolderMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        Clipboard.SetText(_viewModel.SnapshotsFolderPath);
+        Clipboard.SetText(_viewModel.ScreenshotsFolderPath);
     }
 }

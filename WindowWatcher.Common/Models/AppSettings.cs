@@ -2,7 +2,7 @@ namespace WindowWatcher.Common.Models;
 
 public class AppSettings
 {
-    public string SnapshotsPath { get; set; } = @".\Screenshots";
+    public string ScreenshotsPath { get; set; } = @".\Screenshots";
     public string DataDirectory { get; set; } = @".\ActivityLogs";
     public bool MinimizeOnStartup { get; set; } = true;
     public int IdleTimeoutSeconds { get; set; } = 300;
@@ -17,7 +17,7 @@ public class AppSettings
     {
         return new AppSettings
         {
-            SnapshotsPath = SnapshotsPath,
+            ScreenshotsPath = ScreenshotsPath,
             DataDirectory = DataDirectory,
             MinimizeOnStartup = MinimizeOnStartup,
             IdleTimeoutSeconds = IdleTimeoutSeconds,

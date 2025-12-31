@@ -8,19 +8,19 @@ namespace WindowWatcher.ScreenshotViewer.Controls;
 
 public class TimelineSlider : Slider
 {
-    public static readonly DependencyProperty SnapshotsProperty =
-        DependencyProperty.Register(nameof(Snapshots), typeof(List<SnapshotInfo>),
+    public static readonly DependencyProperty ScreenshotsProperty =
+        DependencyProperty.Register(nameof(Screenshots), typeof(List<ScreenshotInfo>),
             typeof(TimelineSlider), new FrameworkPropertyMetadata(null, 
-                FrameworkPropertyMetadataOptions.AffectsRender, OnSnapshotsChanged));
+                FrameworkPropertyMetadataOptions.AffectsRender, OnScreenshotsChanged));
 
     private HeatMapCanvas? _heatMapCanvas;
     private Track? _track;
     private Thumb? _thumb;
 
-    public List<SnapshotInfo>? Snapshots
+    public List<ScreenshotInfo>? Screenshots
     {
-        get => (List<SnapshotInfo>?)GetValue(SnapshotsProperty);
-        set => SetValue(SnapshotsProperty, value);
+        get => (List<ScreenshotInfo>?)GetValue(ScreenshotsProperty);
+        set => SetValue(ScreenshotsProperty, value);
     }
 
     static TimelineSlider()
@@ -88,7 +88,7 @@ public class TimelineSlider : Slider
         }
     }
 
-    private static void OnSnapshotsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnScreenshotsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is TimelineSlider slider)
         {
@@ -99,7 +99,7 @@ public class TimelineSlider : Slider
 
     private void UpdateTicksAndRange()
     {
-        if (Snapshots == null || Snapshots.Count == 0)
+        if (Screenshots == null || Screenshots.Count == 0)
         {
             Ticks.Clear();
             Minimum = 0;
@@ -108,17 +108,17 @@ public class TimelineSlider : Slider
         }
 
         // Use time-based values instead of indices
-        var startTime = Snapshots[0].TimeOfDay;
-        var endTime = Snapshots[^1].TimeOfDay;
+        var startTime = Screenshots[0].TimeOfDay;
+        var endTime = Screenshots[^1].TimeOfDay;
         
         Minimum = startTime.TotalSeconds;
         Maximum = endTime.TotalSeconds;
 
         // Set ticks to actual time values
         Ticks.Clear();
-        foreach (var snapshot in Snapshots)
+        foreach (var screenshot in Screenshots)
         {
-            Ticks.Add(snapshot.TimeOfDay.TotalSeconds);
+            Ticks.Add(screenshot.TimeOfDay.TotalSeconds);
         }
 
         // Update current value to match current index if needed
@@ -128,7 +128,7 @@ public class TimelineSlider : Slider
     // Call this when the value changes externally (from binding)
     private void UpdateValueFromExternalChange()
     {
-        // This will be called during initialization/snapshot changes
+        // This will be called during initialization/screenshot changes
         // The Value binding will handle normal updates
     }
 
@@ -137,19 +137,19 @@ public class TimelineSlider : Slider
         base.OnValueChanged(oldValue, newValue);
     }
 
-    // Helper method to convert time value to snapshot index
-    public int GetSnapshotIndexFromTimeValue(double timeValue)
+    // Helper method to convert time value to screenshot index
+    public int GetScreenshotIndexFromTimeValue(double timeValue)
     {
-        if (Snapshots == null || Snapshots.Count == 0)
+        if (Screenshots == null || Screenshots.Count == 0)
             return 0;
 
-        // Find the closest snapshot to the time value
+        // Find the closest screenshot to the time value
         int closestIndex = 0;
-        double closestDiff = Math.Abs(Snapshots[0].TimeOfDay.TotalSeconds - timeValue);
+        double closestDiff = Math.Abs(Screenshots[0].TimeOfDay.TotalSeconds - timeValue);
 
-        for (int i = 1; i < Snapshots.Count; i++)
+        for (int i = 1; i < Screenshots.Count; i++)
         {
-            double diff = Math.Abs(Snapshots[i].TimeOfDay.TotalSeconds - timeValue);
+            double diff = Math.Abs(Screenshots[i].TimeOfDay.TotalSeconds - timeValue);
             if (diff < closestDiff)
             {
                 closestDiff = diff;
@@ -160,12 +160,12 @@ public class TimelineSlider : Slider
         return closestIndex;
     }
 
-    // Helper method to convert snapshot index to time value
-    public double GetTimeValueFromSnapshotIndex(int index)
+    // Helper method to convert screenshot index to time value
+    public double GetTimeValueFromScreenshotIndex(int index)
     {
-        if (Snapshots == null || Snapshots.Count == 0 || index < 0 || index >= Snapshots.Count)
+        if (Screenshots == null || Screenshots.Count == 0 || index < 0 || index >= Screenshots.Count)
             return 0;
 
-        return Snapshots[index].TimeOfDay.TotalSeconds;
+        return Screenshots[index].TimeOfDay.TotalSeconds;
     }
 }

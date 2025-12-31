@@ -12,7 +12,7 @@ public class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly SettingsService _settingsService;
     private readonly LoggingService _loggingService;
-    private string _snapshotsPath;
+    private string _screenshotsPath;
     private string _dataDirectory;
     private bool _minimizeOnStartup;
     private int _idleTimeoutSeconds;
@@ -28,7 +28,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         _settingsService = settingsService;
         _loggingService = loggingService;
         var settings = _settingsService.LoadSettings();
-        _snapshotsPath = settings.SnapshotsPath;
+        _screenshotsPath = settings.ScreenshotsPath;
         _dataDirectory = settings.DataDirectory;
         _minimizeOnStartup = settings.MinimizeOnStartup;
         _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
@@ -57,19 +57,19 @@ public class SettingsViewModel : INotifyPropertyChanged
         BuildCaptureTargetOptions(_screenshotCaptureTarget);
 
         SaveCommand = new RelayCommand(Save);
-        BrowseSnapshotsCommand = new RelayCommand(() => BrowsePath(path => SnapshotsPath = path));
+        BrowseScreenshotsCommand = new RelayCommand(() => BrowsePath(path => ScreenshotsPath = path));
         BrowseDataDirectoryCommand = new RelayCommand(() => BrowsePath(path => DataDirectory = path));
         RefreshCaptureTargetsCommand = new RelayCommand(() => BuildCaptureTargetOptions(ScreenshotCaptureTarget));
     }
 
-    public string SnapshotsPath
+    public string ScreenshotsPath
     {
-        get => _snapshotsPath;
+        get => _screenshotsPath;
         set
         {
-            if (_snapshotsPath != value)
+            if (_screenshotsPath != value)
             {
-                _snapshotsPath = value;
+                _screenshotsPath = value;
                 OnPropertyChanged();
             }
         }
@@ -197,7 +197,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     public ObservableCollection<string> LogLevelOptions { get; }
 
     public ICommand SaveCommand { get; }
-    public ICommand BrowseSnapshotsCommand { get; }
+    public ICommand BrowseScreenshotsCommand { get; }
     public ICommand BrowseDataDirectoryCommand { get; }
     public ICommand RefreshCaptureTargetsCommand { get; }
 
@@ -207,7 +207,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     {
         var settings = new AppSettings
         {
-            SnapshotsPath = SnapshotsPath,
+            ScreenshotsPath = ScreenshotsPath,
             DataDirectory = DataDirectory,
             MinimizeOnStartup = MinimizeOnStartup,
             IdleTimeoutSeconds = IdleTimeoutSeconds,

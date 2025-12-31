@@ -240,7 +240,7 @@ public sealed class ScreenshotCaptureService : IDisposable
         }
 
         DateTime now = DateTime.Now;
-        string dayFolder = Path.Combine(settings.SnapshotsPath, now.ToString("yyyy-MM-dd"));
+        string dayFolder = Path.Combine(settings.ScreenshotsPath, now.ToString("yyyy-MM-dd"));
         Directory.CreateDirectory(dayFolder);
 
         bool useJpeg = string.Equals(settings.ScreenshotImageFormat, "Jpeg", StringComparison.OrdinalIgnoreCase)

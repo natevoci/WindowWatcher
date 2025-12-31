@@ -45,7 +45,7 @@
 
                             <TextBox Grid.Row="1"
                                     Grid.Column="0"
-                                    Text="{Binding SnapshotsPath, UpdateSourceTrigger=PropertyChanged}"
+                                    Text="{Binding ScreenshotsPath, UpdateSourceTrigger=PropertyChanged}"
                                     VerticalContentAlignment="Center"
                                     Height="32"
                                     Padding="5"
@@ -54,7 +54,7 @@
                             <Button Grid.Row="1"
                                     Grid.Column="1"
                                     Content="Browse..."
-                                    Command="{Binding BrowseSnapshotsCommand}"
+                                    Command="{Binding BrowseScreenshotsCommand}"
                                     Width="80"
                                     Height="32"/>
                         </Grid>

@@ -72,7 +72,7 @@
                                  Margin="10,0,10,10"
                                  Height="80"
                                  Value="{Binding CurrentTimeValue, Mode=TwoWay}"
-                                 Snapshots="{Binding Snapshots}"/>
+                                 Screenshots="{Binding Screenshots}"/>
         
         <!-- Image Display -->
         <Grid Grid.Row="2" x:Name="ImageContainer" Background="Black" ClipToBounds="True">

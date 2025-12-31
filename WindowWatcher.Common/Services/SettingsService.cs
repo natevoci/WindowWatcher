@@ -47,9 +47,9 @@ public class SettingsService
 
     private void ResolveRelativePaths(AppSettings settings)
     {
-        if (!Path.IsPathRooted(settings.SnapshotsPath))
+        if (!Path.IsPathRooted(settings.ScreenshotsPath))
         {
-            settings.SnapshotsPath = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.SnapshotsPath));
+            settings.ScreenshotsPath = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.ScreenshotsPath));
         }
         if (!Path.IsPathRooted(settings.DataDirectory))
         {

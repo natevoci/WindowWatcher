@@ -2,7 +2,7 @@ using System.IO;
 
 namespace WindowWatcher.ScreenshotViewer.Models;
 
-public record SnapshotInfo
+public record ScreenshotInfo
 {
     public required string FilePath { get; init; }
     public TimeSpan TimeOfDay { get; init; }
