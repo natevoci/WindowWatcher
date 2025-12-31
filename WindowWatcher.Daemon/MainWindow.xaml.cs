@@ -10,7 +10,7 @@ public partial class MainWindow : Window
     private readonly ScreenshotCaptureService _screenshotCaptureService;
     private readonly LoggingService _loggingService;
     private ViewEventsWindow? _viewEventsWindow;
-    private WindowWatcher.Analyser.MainWindow? _analyserWindow;
+    private WindowWatcher.Analyser.AnalyserWindow? _analyserWindow;
     private WindowWatcher.ScreenshotViewer.ScreenshotViewerWindow? _screenshotViewerWindow;
 
     public MainWindow(
@@ -67,7 +67,7 @@ public partial class MainWindow : Window
         {
             if (_analyserWindow == null || !_analyserWindow.IsLoaded)
             {
-                _analyserWindow = new WindowWatcher.Analyser.MainWindow();
+                _analyserWindow = new WindowWatcher.Analyser.AnalyserWindow();
                 _analyserWindow.Closed += (s, e) => _analyserWindow = null;
             }
 

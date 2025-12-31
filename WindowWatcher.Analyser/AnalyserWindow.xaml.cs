@@ -2,9 +2,9 @@ using System.Windows;
 
 namespace WindowWatcher.Analyser;
 
-public partial class MainWindow : Window
+public partial class AnalyserWindow : Window
 {
-    public MainWindow()
+    public AnalyserWindow()
     {
         InitializeComponent();
         DataContext = new ViewModels.AnalyserViewModel();
