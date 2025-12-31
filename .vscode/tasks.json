@@ -2,6 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "build: all",
+      "type": "shell",
+      "command": "dotnet build WindowWatcher.sln",
+      "group": "build"
+    },
+    {
       "label": "build: publish daemon",
       "type": "shell",
       "command": "dotnet publish WindowWatcher.Daemon/WindowWatcher.Daemon.csproj --self-contained -r win-x64 -o publish/WindowWatcher",
