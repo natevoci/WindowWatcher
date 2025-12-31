@@ -1,9 +1,8 @@
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
-using WindowWatcher.Common.Services;
 
-namespace WindowWatcher.Daemon;
+namespace WindowWatcher.Common.Services;
 
 public sealed class LoggingService : ILogger
 {
@@ -100,7 +99,6 @@ public sealed class LoggingService : ILogger
         }
         catch
         {
-            // Logging must not interrupt the daemon when the log location is unavailable.
         }
     }
 }

@@ -12,6 +12,7 @@ public partial class ScreenshotViewerWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly SettingsService _settingsService;
+    private readonly LoggingService _loggingService;
     private bool _isDragging;
     private Point _lastMousePosition;
     private Point _mouseDownPosition;
@@ -27,6 +28,7 @@ public partial class ScreenshotViewerWindow : Window
         PlayTestRenderButton.Visibility = Visibility.Visible;
 #endif
         _settingsService = new SettingsService();
+        _loggingService = new LoggingService(_settingsService);
         _viewModel = new MainViewModel(_settingsService);
         DataContext = _viewModel;
 
@@ -221,7 +223,7 @@ public partial class ScreenshotViewerWindow : Window
             return;
         }
 
-        System.Diagnostics.Debug.WriteLine($"{_playTestStopwatch.ElapsedMilliseconds} - Starting Play Test Cache... {count} images");
+        _loggingService.LogInformation($"{_playTestStopwatch.ElapsedMilliseconds} - Starting Play Test Cache... {count} images");
 
         for (int i = start; i < endIndex; i++)
         {
@@ -233,7 +235,9 @@ public partial class ScreenshotViewerWindow : Window
             }
         }
 
-        System.Diagnostics.Debug.WriteLine($"{_playTestStopwatch.ElapsedMilliseconds} - Images loaded...");
+        _loggingService.LogInformation($"{_playTestStopwatch.ElapsedMilliseconds} - Images loaded...");
+
+        MessageBox.Show($"Loaded {loadedTestImages.Count} images into cache in {_playTestStopwatch.ElapsedMilliseconds} ms.", "Play Test", MessageBoxButton.OK, MessageBoxImage.Information);
 
         PlayTestCacheButton.IsEnabled = true;
     }
@@ -250,7 +254,7 @@ public partial class ScreenshotViewerWindow : Window
         {
             _playTestStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            System.Diagnostics.Debug.WriteLine($"{_playTestStopwatch.ElapsedMilliseconds} - Starting Play Test Render... {endIndex - start} frames");
+            _loggingService.LogInformation($"{_playTestStopwatch.ElapsedMilliseconds} - Starting Play Test Render... {endIndex - start} frames");
 
             // Run the rendering loop on a background thread
             await Task.Run(async () =>
@@ -269,7 +273,9 @@ public partial class ScreenshotViewerWindow : Window
                 }
             });
 
-            System.Diagnostics.Debug.WriteLine($"{_playTestStopwatch.ElapsedMilliseconds} - Images rendered...");
+            _loggingService.LogInformation($"{_playTestStopwatch.ElapsedMilliseconds} - Images rendered...");
+
+            MessageBox.Show($"Rendered {endIndex - start} images in {_playTestStopwatch.ElapsedMilliseconds} ms.", "Play Test", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         finally
         {

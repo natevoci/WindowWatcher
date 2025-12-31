@@ -8,6 +8,7 @@ using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
 using Windows.Graphics.Imaging;
+using WindowWatcher.Common.Services;
 
 namespace WindowWatcher.Daemon;
 
