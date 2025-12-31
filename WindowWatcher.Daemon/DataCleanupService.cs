@@ -98,6 +98,9 @@ public sealed class DataCleanupService : IDisposable
     {
         var settings = _settingsService.LoadSettings();
         CleanupScreenshots(settings.ScreenshotsPath, settings.ScreenshotRetentionDays);
+        if (!string.IsNullOrWhiteSpace(settings.ScreenshotsArchivePath) && Directory.Exists(settings.ScreenshotsArchivePath))
+            CleanupScreenshots(settings.ScreenshotsArchivePath, settings.ScreenshotRetentionDays);
+        ArchiveScreenshots(settings.ScreenshotsPath, settings.ScreenshotsArchivePath, settings.ScreenshotsArchiveAfterDays);
         CleanupActivityLogs(settings.DataDirectory, settings.LogRetentionDays);
         CleanupLogFiles(_loggingService.LogDirectory, settings.LogRetentionDays);
     }
@@ -176,6 +179,87 @@ public sealed class DataCleanupService : IDisposable
             {
                 TryDeleteFile(filePath);
             }
+        }
+    }
+
+    private void ArchiveScreenshots(string screenshotsPath, string archivePath, int archiveAfterDays)
+    {
+        if (string.IsNullOrWhiteSpace(archivePath))
+            return;
+
+        string normalizedScreenshots = Path.GetFullPath(screenshotsPath);
+        string normalizedArchive = Path.GetFullPath(archivePath);
+        if (string.Equals(normalizedScreenshots, normalizedArchive, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (!Directory.Exists(screenshotsPath))
+            return;
+
+        if (!Directory.Exists(archivePath))
+        {
+            // If the drive of the archive path doesn't exist we will skip archiving for now.
+            string? root = Path.GetPathRoot(archivePath);
+            if (string.IsNullOrEmpty(root) || !Directory.Exists(root))
+                return;
+
+            try
+            {
+                Directory.CreateDirectory(archivePath);
+            }
+            catch (Exception ex)
+            {
+                _loggingService.LogError($"Failed to create archive directory '{archivePath}'.", ex);
+                return;
+            }
+        }
+
+        DateTime cutoffDate = DateTime.Today.AddDays(-Math.Max(1, archiveAfterDays));
+        foreach (string directoryPath in Directory.GetDirectories(screenshotsPath))
+        {
+            string folderName = Path.GetFileName(directoryPath);
+            if (!DateTime.TryParseExact(folderName, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime folderDate))
+                continue;
+
+            if (folderDate <= cutoffDate)
+                TryMoveDirectory(directoryPath, Path.Combine(archivePath, folderName));
+        }
+    }
+
+    private void TryMoveDirectory(string source, string destination)
+    {
+        try
+        {
+            if (!Directory.Exists(destination))
+            {
+                try
+                {
+                    Directory.Move(source, destination);
+                    return;
+                }
+                catch (IOException) when (!string.Equals(
+                    Path.GetPathRoot(source), Path.GetPathRoot(destination),
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    // Cross-drive move — fall through to copy-then-delete.
+                }
+            }
+
+            Directory.CreateDirectory(destination);
+            foreach (string file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+            {
+                string relative = Path.GetRelativePath(source, file);
+                string destFile = Path.Combine(destination, relative);
+                string? destDir = Path.GetDirectoryName(destFile);
+                if (destDir != null)
+                    Directory.CreateDirectory(destDir);
+                if (!File.Exists(destFile))
+                    File.Copy(file, destFile);
+            }
+            Directory.Delete(source, recursive: true);
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to move directory '{source}' to '{destination}'.", ex);
         }
     }
 

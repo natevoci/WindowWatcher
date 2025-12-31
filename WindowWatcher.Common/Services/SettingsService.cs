@@ -56,6 +56,16 @@ public class SettingsService
             settings.DataDirectory = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.DataDirectory));
         }
 
+        if (!string.IsNullOrWhiteSpace(settings.ScreenshotsArchivePath) && !Path.IsPathRooted(settings.ScreenshotsArchivePath))
+        {
+            settings.ScreenshotsArchivePath = Path.GetFullPath(Path.Combine(SettingsDirectory, settings.ScreenshotsArchivePath));
+        }
+
+        if (settings.ScreenshotsArchiveAfterDays <= 0)
+        {
+            settings.ScreenshotsArchiveAfterDays = 3;
+        }
+
         if (settings.ScreenshotIntervalSeconds <= 0)
         {
             settings.ScreenshotIntervalSeconds = 5;

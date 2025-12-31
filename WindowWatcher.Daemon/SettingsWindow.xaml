@@ -205,6 +205,56 @@
                                      Padding="5"/>
                         </Grid>
 
+                        <Grid Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Grid.ColumnSpan="2"
+                                       Text="Archive Folder Path"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,5"/>
+
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="0"
+                                     Text="{Binding ScreenshotsArchivePath, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     Height="32"
+                                     Padding="5"
+                                     Margin="0,0,10,0"/>
+
+                            <Button Grid.Row="1"
+                                    Grid.Column="1"
+                                    Content="Browse..."
+                                    Command="{Binding BrowseScreenshotsArchiveCommand}"
+                                    Width="80"
+                                    Height="32"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Archive after (days)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="Move screenshot folders to the archive path after this many days." Foreground="#666666" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ScreenshotsArchiveAfterDays, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     Height="32"
+                                     Padding="5"/>
+                        </Grid>
 
                         <Grid>
                             <Grid.ColumnDefinitions>

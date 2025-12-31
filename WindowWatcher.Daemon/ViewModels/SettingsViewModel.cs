@@ -13,6 +13,8 @@ public class SettingsViewModel : INotifyPropertyChanged
     private readonly SettingsService _settingsService;
     private readonly LoggingService _loggingService;
     private string _screenshotsPath;
+    private string _screenshotsArchivePath;
+    private int _screenshotsArchiveAfterDays;
     private string _dataDirectory;
     private bool _minimizeOnStartup;
     private int _idleTimeoutSeconds;
@@ -29,6 +31,8 @@ public class SettingsViewModel : INotifyPropertyChanged
         _loggingService = loggingService;
         var settings = _settingsService.LoadSettings();
         _screenshotsPath = settings.ScreenshotsPath;
+        _screenshotsArchivePath = settings.ScreenshotsArchivePath;
+        _screenshotsArchiveAfterDays = settings.ScreenshotsArchiveAfterDays;
         _dataDirectory = settings.DataDirectory;
         _minimizeOnStartup = settings.MinimizeOnStartup;
         _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
@@ -58,6 +62,7 @@ public class SettingsViewModel : INotifyPropertyChanged
 
         SaveCommand = new RelayCommand(Save);
         BrowseScreenshotsCommand = new RelayCommand(() => BrowsePath(path => ScreenshotsPath = path));
+        BrowseScreenshotsArchiveCommand = new RelayCommand(() => BrowsePath(path => ScreenshotsArchivePath = path));
         BrowseDataDirectoryCommand = new RelayCommand(() => BrowsePath(path => DataDirectory = path));
         RefreshCaptureTargetsCommand = new RelayCommand(() => BuildCaptureTargetOptions(ScreenshotCaptureTarget));
     }
@@ -70,6 +75,32 @@ public class SettingsViewModel : INotifyPropertyChanged
             if (_screenshotsPath != value)
             {
                 _screenshotsPath = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string ScreenshotsArchivePath
+    {
+        get => _screenshotsArchivePath;
+        set
+        {
+            if (_screenshotsArchivePath != value)
+            {
+                _screenshotsArchivePath = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int ScreenshotsArchiveAfterDays
+    {
+        get => _screenshotsArchiveAfterDays;
+        set
+        {
+            if (_screenshotsArchiveAfterDays != value)
+            {
+                _screenshotsArchiveAfterDays = value;
                 OnPropertyChanged();
             }
         }
@@ -198,6 +229,7 @@ public class SettingsViewModel : INotifyPropertyChanged
 
     public ICommand SaveCommand { get; }
     public ICommand BrowseScreenshotsCommand { get; }
+    public ICommand BrowseScreenshotsArchiveCommand { get; }
     public ICommand BrowseDataDirectoryCommand { get; }
     public ICommand RefreshCaptureTargetsCommand { get; }
 
@@ -208,6 +240,8 @@ public class SettingsViewModel : INotifyPropertyChanged
         var settings = new AppSettings
         {
             ScreenshotsPath = ScreenshotsPath,
+            ScreenshotsArchivePath = ScreenshotsArchivePath,
+            ScreenshotsArchiveAfterDays = ScreenshotsArchiveAfterDays,
             DataDirectory = DataDirectory,
             MinimizeOnStartup = MinimizeOnStartup,
             IdleTimeoutSeconds = IdleTimeoutSeconds,

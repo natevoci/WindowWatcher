@@ -25,36 +25,76 @@ public class ScreenshotService
 
     private string GetScreenshotsPath() => ScreenshotsPath;
 
+    private string? GetArchivePath()
+    {
+        var settings = _settingsService.LoadSettings();
+        if (string.IsNullOrWhiteSpace(settings.ScreenshotsArchivePath))
+            return null;
+
+        // Only include archive when the viewer is showing the real screenshots folder, not a custom override.
+        if (_screenshotsPathOverride != null &&
+            !string.Equals(Path.GetFullPath(_screenshotsPathOverride), Path.GetFullPath(settings.ScreenshotsPath),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return Directory.Exists(settings.ScreenshotsArchivePath) ? settings.ScreenshotsArchivePath : null;
+    }
+
     public List<DateTime> GetAvailableDates()
     {
-        var screenshotsPath = GetScreenshotsPath();
-        if (!Directory.Exists(screenshotsPath))
-            return new List<DateTime>();
+        var dates = new HashSet<DateTime>();
 
-        var dates = new List<DateTime>();
-        
-        foreach (var directory in Directory.GetDirectories(screenshotsPath))
+        CollectDates(GetScreenshotsPath(), dates);
+
+        var archivePath = GetArchivePath();
+        if (archivePath != null)
+            CollectDates(archivePath, dates);
+
+        return dates.OrderByDescending(d => d).ToList();
+    }
+
+    private static void CollectDates(string folder, HashSet<DateTime> dates)
+    {
+        if (!Directory.Exists(folder))
+            return;
+        foreach (var directory in Directory.GetDirectories(folder))
         {
             var dirName = Path.GetFileName(directory);
-            if (DateTime.TryParseExact(dirName, "yyyy-MM-dd", 
+            if (DateTime.TryParseExact(dirName, "yyyy-MM-dd",
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
                 dates.Add(date);
             }
         }
-        
-        return dates.OrderByDescending(d => d).ToList();
     }
     public List<ScreenshotInfo> GetScreenshotsForDate(DateTime date)
     {
-        var screenshotsPath = GetScreenshotsPath();
-        var dateFolder = Path.Combine(screenshotsPath, date.ToString("yyyy-MM-dd"));
-        
-        if (!Directory.Exists(dateFolder))
-            return new List<ScreenshotInfo>();
-
         var screenshots = new List<ScreenshotInfo>();
-        var imageFiles = Directory.EnumerateFiles(dateFolder)
+        var dateStr = date.ToString("yyyy-MM-dd");
+
+        LoadScreenshotsFromFolder(Path.Combine(GetScreenshotsPath(), dateStr), date, screenshots);
+
+        var archivePath = GetArchivePath();
+        if (archivePath != null)
+            LoadScreenshotsFromFolder(Path.Combine(archivePath, dateStr), date, screenshots);
+
+        screenshots = screenshots.OrderBy(s => s.TimeOfDay).ToList();
+        for (int i = 0; i < screenshots.Count; i++)
+        {
+            screenshots[i] = screenshots[i] with { Index = i };
+        }
+
+        return screenshots;
+    }
+
+    private void LoadScreenshotsFromFolder(string folder, DateTime date, List<ScreenshotInfo> screenshots)
+    {
+        if (!Directory.Exists(folder))
+            return;
+
+        var imageFiles = Directory.EnumerateFiles(folder)
             .Where(f =>
             {
                 var extension = Path.GetExtension(f).ToLowerInvariant();
@@ -75,15 +115,6 @@ public class ScreenshotService
                 });
             }
         }
-        
-        // Sort by time and assign indices
-        screenshots = screenshots.OrderBy(s => s.TimeOfDay).ToList();
-        for (int i = 0; i < screenshots.Count; i++)
-        {
-            screenshots[i] = screenshots[i] with { Index = i };
-        }
-        
-        return screenshots;
     }
 
     private bool TryParseTimestamp(string fileName, out TimeSpan timeOfDay)
