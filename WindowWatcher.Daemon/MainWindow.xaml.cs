@@ -43,7 +43,7 @@ public partial class MainWindow : Window
 
     private void TrayIcon_TrayMouseDoubleClick(object sender, RoutedEventArgs e)
     {
-        ShowViewEventsWindow();
+        ShowScreenshotViewerWindow();
     }
 
     private void ViewEventsMenuItem_Click(object sender, RoutedEventArgs e)

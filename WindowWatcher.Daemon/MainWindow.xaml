@@ -15,9 +15,9 @@
     
     <Window.Resources>
         <ContextMenu x:Key="TrayContextMenu">
-            <MenuItem Header="View Events" FontWeight="Bold" Click="ViewEventsMenuItem_Click"/>
+            <MenuItem Header="View Screenshots" FontWeight="Bold" Click="ViewScreenshotsMenuItem_Click"/>
+            <MenuItem Header="View Events" Click="ViewEventsMenuItem_Click"/>
             <MenuItem Header="View Analyser" Click="ViewAnalyserMenuItem_Click"/>
-            <MenuItem Header="View Screenshots" Click="ViewScreenshotsMenuItem_Click"/>
 
             <Separator/>
 
@@ -35,7 +35,7 @@
     
     <Grid>
         <tb:TaskbarIcon x:Name="TrayIcon"
-                        IconSource="Icon1.ico"
+                        IconSource="App.ico"
                         ToolTipText="Window Watcher"
                         ContextMenu="{StaticResource TrayContextMenu}"
                         TrayMouseDoubleClick="TrayIcon_TrayMouseDoubleClick"/>

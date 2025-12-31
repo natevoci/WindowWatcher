@@ -6,7 +6,7 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>Icon1.ico</ApplicationIcon>
+    <ApplicationIcon>App.ico</ApplicationIcon>
     <OutputPath>..\bin\</OutputPath>
     <Version>2.0.0</Version>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Icon1.ico" />
+    <Resource Include="App.ico" />
   </ItemGroup>
 
 </Project>
