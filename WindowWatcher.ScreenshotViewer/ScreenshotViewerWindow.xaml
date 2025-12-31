@@ -52,6 +52,17 @@
                         HorizontalAlignment="Right">
                 <Button x:Name="PlayTestCacheButton" Content="Cache Test" Width="60" Height="24" Margin="0,0,10,0" Click="PlayTestCacheButton_Click" Visibility="Collapsed"/>
                 <Button x:Name="PlayTestRenderButton" Content="Play Test" Width="60" Height="24" Margin="0,0,10,0" Click="PlayTestRenderButton_Click" Visibility="Collapsed"/>
+                <Button x:Name="ViewerMenuButton" Content="☰" Width="32" Height="24" Click="ViewerMenuButton_Click" ToolTip="Viewer actions">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ViewerMenu">
+                            <MenuItem Header="Open Screenshots Folder" Click="OpenScreenshotsFolderMenuItem_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Copy Image" Click="CopyImageMenuItem_Click"/>
+                            <MenuItem Header="Copy Image Filename" Click="CopyImageFilenameMenuItem_Click"/>
+                            <MenuItem Header="Copy Screenshots Folder" Click="CopyScreenshotsFolderMenuItem_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
             </StackPanel>
         </Grid>
         

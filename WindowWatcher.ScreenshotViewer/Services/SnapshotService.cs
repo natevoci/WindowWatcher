@@ -14,7 +14,16 @@ public class SnapshotService
         _settingsService = settingsService;
     }
 
-    private string GetSnapshotsPath() => _settingsService.LoadSettings().SnapshotsPath;
+    private string? _snapshotsPathOverride;
+
+    public string SnapshotsPath => _snapshotsPathOverride ?? _settingsService.LoadSettings().SnapshotsPath;
+
+    public void SetSnapshotsPathOverride(string snapshotsPath)
+    {
+        _snapshotsPathOverride = snapshotsPath;
+    }
+
+    private string GetSnapshotsPath() => SnapshotsPath;
 
     public List<DateTime> GetAvailableDates()
     {

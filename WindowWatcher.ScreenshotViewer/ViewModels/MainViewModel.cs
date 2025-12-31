@@ -41,13 +41,10 @@ public class MainViewModel : INotifyPropertyChanged
     {
         // Reload available dates and reset the view
         var availableDates = _snapshotService.GetAvailableDates();
+        SelectedDate = null;
         if (availableDates.Count > 0)
         {
             SelectedDate = availableDates[0];
-        }
-        else
-        {
-            SelectedDate = null;
         }
     }
 
@@ -194,11 +191,14 @@ public class MainViewModel : INotifyPropertyChanged
         if (_selectedDate == null)
         {
             Snapshots = new List<SnapshotInfo>();
+            _currentIndex = -1;
+            CurrentImageSource = null;
             return;
         }
 
         _imageCache.Clear();
         Snapshots = _snapshotService.GetSnapshotsForDate(_selectedDate.Value);
+        _currentIndex = -1;
         
         if (Snapshots.Count > 0)
         {
@@ -293,6 +293,19 @@ public class MainViewModel : INotifyPropertyChanged
     public void ToggleZoom()
     {
         IsZoomed = !IsZoomed;
+    }
+
+    public string SnapshotsFolderPath => _snapshotService.SnapshotsPath;
+
+    public string? CurrentImageFilePath => CurrentIndex >= 0 && CurrentIndex < Snapshots.Count
+        ? Snapshots[CurrentIndex].FilePath
+        : null;
+
+    public void SetSnapshotsFolder(string snapshotsPath)
+    {
+        _snapshotService.SetSnapshotsPathOverride(snapshotsPath);
+        RefreshData();
+        OnPropertyChanged(nameof(SnapshotsFolderPath));
     }
 
     public ImageCacheService ImageCache => _imageCache;

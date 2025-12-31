@@ -277,4 +277,44 @@ public partial class ScreenshotViewerWindow : Window
             PlayTestRenderButton.IsEnabled = true;
         }
     }
+
+    private void ViewerMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewerMenu.PlacementTarget = ViewerMenuButton;
+        ViewerMenu.IsOpen = true;
+    }
+
+    private void OpenScreenshotsFolderMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            InitialDirectory = _viewModel.SnapshotsFolderPath
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _viewModel.SetSnapshotsFolder(dialog.FolderName);
+        }
+    }
+
+    private void CopyImageMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.CurrentImageSource != null)
+        {
+            Clipboard.SetImage(_viewModel.CurrentImageSource);
+        }
+    }
+
+    private void CopyImageFilenameMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.CurrentImageFilePath != null)
+        {
+            Clipboard.SetText(_viewModel.CurrentImageFilePath);
+        }
+    }
+
+    private void CopyScreenshotsFolderMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        Clipboard.SetText(_viewModel.SnapshotsFolderPath);
+    }
 }
