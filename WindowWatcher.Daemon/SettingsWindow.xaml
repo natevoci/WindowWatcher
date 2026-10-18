@@ -278,6 +278,10 @@
 
                 <GroupBox Header="Misc" Margin="0,0,0,0" Padding="12">
                     <StackPanel>
+                        <CheckBox Content="Launch automatically when I sign in"
+                                  IsChecked="{Binding AutoLaunchOnStartup}"
+                                  Margin="0,0,0,12"/>
+
                         <CheckBox Content="Minimize on startup"
                                   IsChecked="{Binding MinimizeOnStartup}"/>
 

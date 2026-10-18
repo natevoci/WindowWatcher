@@ -2,6 +2,20 @@
 
 ## Feature History
 
+### 2026-10-19
+
+**fix: Recover screenshot capture after Direct3D device loss**
+
+- Recreate a lost Direct3D device, clear cached capture resources, and retry capture without restarting the daemon.
+- Serialize capture and device disposal so recovery cannot invalidate another capture's device.
+- After three consecutive scheduled device-recovery failures, gracefully restart the daemon with its original arguments; the replacement waits for shutdown, and a 15-minute cooldown prevents restart loops.
+- Keep one-shot screenshot capture limited to in-process recovery, and leave the current daemon running if the replacement cannot be launched.
+
+**feat: Add auto-launch toggle to daemon settings**
+
+- Settings reads auto-launch status from the current user's Startup folder shortcut, without storing a JSON setting.
+- Saving creates or deletes `WindowWatcherDaemon.lnk`, targeting `WindowWatcher.Daemon.exe`; Cancel leaves the shortcut unchanged.
+
 ### 2026-01-01
 
 **fix: Restore row titles drawing and row sorting in the Analyser timeline**

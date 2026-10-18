@@ -12,11 +12,29 @@ public partial class App : Application
 {
     private const string GithubOwner = "natevoci";
     private const string GithubRepo = "WindowWatcher";
+    private const string CaptureRestartArgument = "--capture-restart-utc=";
+    private const string WaitForProcessArgument = "--wait-for-process=";
 
     private ServiceProvider? _serviceProvider;
+    private DateTime _lastCaptureRestartUtc = DateTime.MinValue;
+    private bool _captureRestartPending;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (!WaitForPreviousProcess(e.Args))
+        {
+            Shutdown(1);
+            return;
+        }
+
+        string? restartArgument = e.Args.FirstOrDefault(arg => arg.StartsWith(CaptureRestartArgument, StringComparison.Ordinal));
+        if (restartArgument != null
+            && long.TryParse(restartArgument[CaptureRestartArgument.Length..], out long restartTicks)
+            && restartTicks >= DateTime.MinValue.Ticks && restartTicks <= DateTime.MaxValue.Ticks)
+        {
+            _lastCaptureRestartUtc = new DateTime(restartTicks, DateTimeKind.Utc);
+        }
+
         // Initialize Velopack
         VelopackApp.Build().Run();
 
@@ -120,6 +138,7 @@ public partial class App : Application
 
         // Start screenshot capture service
         var screenshotCaptureService = _serviceProvider.GetRequiredService<ScreenshotCaptureService>();
+        screenshotCaptureService.RestartRequested += OnCaptureRestartRequested;
         screenshotCaptureService.Start();
 
         // Start cleanup service
@@ -129,6 +148,86 @@ public partial class App : Application
         // Show main window
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
+    }
+
+    private static bool WaitForPreviousProcess(string[] arguments)
+    {
+        string? waitArgument = arguments.FirstOrDefault(arg => arg.StartsWith(WaitForProcessArgument, StringComparison.Ordinal));
+        if (waitArgument == null || !int.TryParse(waitArgument[WaitForProcessArgument.Length..], out int processId))
+        {
+            return true;
+        }
+
+        try
+        {
+            using var previousProcess = Process.GetProcessById(processId);
+            return previousProcess.WaitForExit(30_000);
+        }
+        catch (ArgumentException)
+        {
+            return true;
+        }
+    }
+
+    private void OnCaptureRestartRequested()
+    {
+        _ = Dispatcher.InvokeAsync(RestartAfterCaptureFailure);
+    }
+
+    private void RestartAfterCaptureFailure()
+    {
+        var loggingService = _serviceProvider?.GetService<LoggingService>();
+        if (_captureRestartPending || Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        if (now - _lastCaptureRestartUtc < TimeSpan.FromMinutes(15))
+        {
+            loggingService?.LogWarning("Automatic screenshot recovery restart suppressed by the 15-minute cooldown; in-process recovery will continue.");
+            return;
+        }
+
+        _lastCaptureRestartUtc = now;
+        try
+        {
+            string processPath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("The daemon executable path is unavailable.");
+            var startInfo = new ProcessStartInfo(processPath)
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Environment.CurrentDirectory
+            };
+
+            if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
+            {
+                startInfo.ArgumentList.Add(typeof(App).Assembly.Location);
+            }
+
+            foreach (string argument in Environment.GetCommandLineArgs().Skip(1))
+            {
+                if (!argument.StartsWith(CaptureRestartArgument, StringComparison.Ordinal)
+                    && !argument.StartsWith(WaitForProcessArgument, StringComparison.Ordinal))
+                {
+                    startInfo.ArgumentList.Add(argument);
+                }
+            }
+
+            startInfo.ArgumentList.Add($"{CaptureRestartArgument}{now.Ticks}");
+            startInfo.ArgumentList.Add($"{WaitForProcessArgument}{Environment.ProcessId}");
+            using var replacement = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("The replacement daemon process could not be started.");
+            _captureRestartPending = true;
+            loggingService?.LogWarning("Restarting the daemon after repeated screenshot recovery failures; the replacement will wait for this process to exit.");
+        }
+        catch (Exception ex)
+        {
+            loggingService?.LogError("Automatic daemon restart failed; the current daemon will keep running and attempting device recovery.", ex);
+            return;
+        }
+
+        Shutdown();
     }
 
     protected override void OnExit(ExitEventArgs e)

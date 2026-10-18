@@ -23,6 +23,8 @@ public sealed class ScreenshotCaptureService : IDisposable
     private WindowChangedEventArgs? _lastWindowChangedEvent;
     private DateTime _lastSavedUtc = DateTime.MinValue;
 
+    public event Action? RestartRequested;
+
     public ScreenshotCaptureService(
         SettingsService settingsService,
         UserActivityService userActivityService,
@@ -138,6 +140,7 @@ public sealed class ScreenshotCaptureService : IDisposable
 
     private async Task CaptureLoopAsync(CancellationToken cancellationToken)
     {
+        int consecutiveRecoveryFailures = 0;
         _loggingService.LogTrace("Screenshot capture loop started.");
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -178,6 +181,7 @@ public sealed class ScreenshotCaptureService : IDisposable
                 bool saved = await SaveScreenshotAsync(settings, cancellationToken);
                 if (saved)
                 {
+                    consecutiveRecoveryFailures = 0;
                     lock (_sync)
                     {
                         _lastSavedUtc = DateTime.UtcNow;
@@ -187,8 +191,24 @@ public sealed class ScreenshotCaptureService : IDisposable
                     _loggingService.LogDebug($"Scheduled screenshot capture saved in {captureTimer.ElapsedMilliseconds} ms.");
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (GraphicsCaptureRecoveryException ex)
+            {
+                consecutiveRecoveryFailures++;
+                _loggingService.LogError($"Screenshot device recovery failed ({consecutiveRecoveryFailures}/3 consecutive attempts).", ex);
+                if (consecutiveRecoveryFailures >= 3 && !cancellationToken.IsCancellationRequested)
+                {
+                    consecutiveRecoveryFailures = 0;
+                    _loggingService.LogWarning("Requesting a daemon restart after repeated screenshot device recovery failures.");
+                    RestartRequested?.Invoke();
+                }
+            }
             catch (Exception ex)
             {
+                consecutiveRecoveryFailures = 0;
                 _loggingService.LogError("Screenshot capture failed.", ex);
             }
         }

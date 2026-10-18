@@ -14,8 +14,10 @@ namespace WindowWatcher.Daemon;
 
 public sealed class GraphicsCaptureService : IDisposable
 {
-    private readonly IDirect3DDevice _direct3DDevice;
+    private IDirect3DDevice _direct3DDevice;
     private readonly LoggingService _loggingService;
+    private readonly SemaphoreSlim _captureLock = new(1, 1);
+    private bool _deviceNeedsReset;
 
     // Creating a GraphicsCaptureItem (CreateForMonitor) is the dominant per-capture setup cost
     // (~150 ms per monitor). A monitor's capture item stays valid until the display configuration
@@ -50,7 +52,12 @@ public sealed class GraphicsCaptureService : IDisposable
         _loggingService.LogDebug("Display settings changed; cleared cached monitor capture items.");
     }
 
-    public async Task<CapturedImage?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
+    public Task<CapturedImage?> CaptureWindowAsync(IntPtr windowHandle, CancellationToken cancellationToken)
+    {
+        return CaptureWithRecoveryAsync(() => CaptureWindowCoreAsync(windowHandle, cancellationToken), cancellationToken);
+    }
+
+    private async Task<CapturedImage?> CaptureWindowCoreAsync(IntPtr windowHandle, CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         if (windowHandle == IntPtr.Zero)
@@ -78,7 +85,12 @@ public sealed class GraphicsCaptureService : IDisposable
         return capture;
     }
 
-    public async Task<CapturedImage?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
+    public Task<CapturedImage?> CaptureMonitorAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
+    {
+        return CaptureWithRecoveryAsync(() => CaptureMonitorCoreAsync(monitorHandle, cancellationToken), cancellationToken);
+    }
+
+    private async Task<CapturedImage?> CaptureMonitorCoreAsync(IntPtr monitorHandle, CancellationToken cancellationToken)
     {
         var captureTimer = Stopwatch.StartNew();
         if (monitorHandle == IntPtr.Zero)
@@ -116,6 +128,83 @@ public sealed class GraphicsCaptureService : IDisposable
         }
 
         return await CaptureWindowAsync(desktopWindow, cancellationToken);
+    }
+
+    private async Task<CapturedImage?> CaptureWithRecoveryAsync(Func<Task<CapturedImage?>> capture, CancellationToken cancellationToken)
+    {
+        await _captureLock.WaitAsync(cancellationToken);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            bool recovering = _deviceNeedsReset;
+            for (int attempt = 0; ; attempt++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    if (_deviceNeedsReset)
+                    {
+                        ResetCaptureDevice();
+                    }
+
+                    CapturedImage? image = await capture();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (recovering && image == null)
+                    {
+                        throw new InvalidOperationException("Graphics capture returned no image after device recovery.");
+                    }
+
+                    if (recovering)
+                    {
+                        _loggingService.LogInformation("Screenshot capture recovered after recreating the Direct3D device.");
+                    }
+
+                    return image;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException
+                    && !cancellationToken.IsCancellationRequested
+                    && (recovering || IsDeviceLostException(ex)))
+                {
+                    _deviceNeedsReset = true;
+                    recovering = true;
+                    if (attempt >= 1)
+                    {
+                        throw new GraphicsCaptureRecoveryException("Screenshot capture could not recover from Direct3D device loss.", ex);
+                    }
+
+                    _loggingService.LogWarning($"Graphics capture device was lost (HRESULT 0x{ex.HResult:X8}); recreating it and retrying capture.");
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            _captureLock.Release();
+        }
+    }
+
+    private static bool IsDeviceLostException(Exception exception)
+    {
+        return exception.HResult is unchecked((int)0x887A0005)
+            or unchecked((int)0x887A0006)
+            or unchecked((int)0x887A0007)
+            or unchecked((int)0x887A0020)
+            or unchecked((int)0x887A0026);
+    }
+
+    private void ResetCaptureDevice()
+    {
+        lock (_cacheLock)
+        {
+            _monitorItemCache.Clear();
+            _captureItemInterop = null;
+        }
+
+        IDirect3DDevice previousDevice = _direct3DDevice;
+        _direct3DDevice = CreateDirect3DDevice();
+        previousDevice.Dispose();
+        _deviceNeedsReset = false;
+        _loggingService.LogInformation("Recreated the Direct3D capture device and cleared cached capture items.");
     }
 
     private async Task<CapturedImage?> CaptureItemAsync(GraphicsCaptureItem item, CancellationToken cancellationToken)
@@ -401,23 +490,28 @@ public sealed class GraphicsCaptureService : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        _captureLock.Wait();
+        try
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+
+            lock (_cacheLock)
+            {
+                _monitorItemCache.Clear();
+                _captureItemInterop = null;
+            }
+
+            _direct3DDevice.Dispose();
         }
-
-        _disposed = true;
-        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-
-        lock (_cacheLock)
+        finally
         {
-            _monitorItemCache.Clear();
-            _captureItemInterop = null;
-        }
-
-        if (_direct3DDevice is IDisposable disposable)
-        {
-            disposable.Dispose();
+            _captureLock.Release();
         }
     }
 
@@ -523,4 +617,12 @@ public sealed class GraphicsCaptureService : IDisposable
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetDesktopWindow();
+}
+
+internal sealed class GraphicsCaptureRecoveryException : Exception
+{
+    public GraphicsCaptureRecoveryException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }

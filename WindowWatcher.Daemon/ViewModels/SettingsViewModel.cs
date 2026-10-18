@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Windows.Input;
 using System.Windows.Forms;
 using WindowWatcher.Common.Models;
@@ -16,6 +18,7 @@ public class SettingsViewModel : INotifyPropertyChanged
     private string _screenshotsArchivePath;
     private int _screenshotsArchiveAfterDays;
     private string _dataDirectory;
+    private bool _autoLaunchOnStartup;
     private bool _minimizeOnStartup;
     private int _idleTimeoutSeconds;
     private int _logRetentionDays;
@@ -34,6 +37,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         _screenshotsArchivePath = settings.ScreenshotsArchivePath;
         _screenshotsArchiveAfterDays = settings.ScreenshotsArchiveAfterDays;
         _dataDirectory = settings.DataDirectory;
+        _autoLaunchOnStartup = File.Exists(StartupShortcutPath);
         _minimizeOnStartup = settings.MinimizeOnStartup;
         _idleTimeoutSeconds = settings.IdleTimeoutSeconds;
         _logRetentionDays = settings.LogRetentionDays;
@@ -114,6 +118,22 @@ public class SettingsViewModel : INotifyPropertyChanged
             if (_dataDirectory != value)
             {
                 _dataDirectory = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private static string StartupShortcutPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.Startup), "WindowWatcherDaemon.lnk");
+
+    public bool AutoLaunchOnStartup
+    {
+        get => _autoLaunchOnStartup;
+        set
+        {
+            if (_autoLaunchOnStartup != value)
+            {
+                _autoLaunchOnStartup = value;
                 OnPropertyChanged();
             }
         }
@@ -255,6 +275,7 @@ public class SettingsViewModel : INotifyPropertyChanged
 
         try
         {
+            UpdateStartupShortcut();
             _settingsService.SaveSettings(settings);
             SettingsSaved?.Invoke(this, EventArgs.Empty);
         }
@@ -263,6 +284,50 @@ public class SettingsViewModel : INotifyPropertyChanged
             _loggingService.LogError("Failed to save settings.", ex);
             System.Windows.MessageBox.Show($"Failed to save settings: {ex.Message}", "Error",
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private void UpdateStartupShortcut()
+    {
+        var shortcutPath = StartupShortcutPath;
+        if (AutoLaunchOnStartup == File.Exists(shortcutPath))
+        {
+            return;
+        }
+
+        if (!AutoLaunchOnStartup)
+        {
+            File.Delete(shortcutPath);
+            return;
+        }
+
+        var executablePath = Path.Combine(AppContext.BaseDirectory, "WindowWatcher.Daemon.exe");
+        if (!File.Exists(executablePath))
+        {
+            throw new FileNotFoundException("Cannot find the daemon executable for auto-launch.", executablePath);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(shortcutPath)!);
+        var shellType = Type.GetTypeFromProgID("WScript.Shell")
+            ?? throw new InvalidOperationException("Windows Script Host is unavailable.");
+        dynamic shell = Activator.CreateInstance(shellType)!;
+        object? shortcut = null;
+        try
+        {
+            shortcut = shell.CreateShortcut(shortcutPath);
+            dynamic startupShortcut = shortcut;
+            startupShortcut.TargetPath = executablePath;
+            startupShortcut.WorkingDirectory = AppContext.BaseDirectory;
+            startupShortcut.Save();
+        }
+        finally
+        {
+            if (shortcut != null)
+            {
+                Marshal.FinalReleaseComObject(shortcut);
+            }
+
+            Marshal.FinalReleaseComObject(shell);
         }
     }
 
